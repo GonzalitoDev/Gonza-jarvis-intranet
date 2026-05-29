@@ -3,8 +3,10 @@ import platform
 import datetime
 import subprocess
 import json
+import re
 import psutil
 from pathlib import Path
+from modules.crawler import crawl_url
 
 NOTES_DIR = Path("data/notes")
 NOTES_DIR.mkdir(parents=True, exist_ok=True)
@@ -35,7 +37,13 @@ class SystemControl:
         if cmd_lower.startswith("notas") or cmd_lower == "notas":
             return self._list_notes()
 
-        return {"type": "unknown", "message": f"No entendí el comando: {command}. Probá con: RAM, hora, abrí [app], tomá nota: ..., listá [carpeta]."}
+        if cmd_lower.startswith("scrapea") or cmd_lower.startswith("extrae") or cmd_lower.startswith("scrape"):
+            url = re.search(r"https?://\S+", command)
+            if url:
+                return self._scrape(url.group())
+            return {"type": "error", "message": "No encontré una URL válida. Ej: scrapea https://ejemplo.com"}
+
+        return {"type": "unknown", "message": f"No entendí el comando: {command}. Probá con: RAM, hora, abrí [app], tomá nota: ..., listá [carpeta], scrapea [url]."}
 
     def _system_info(self) -> dict:
         mem = psutil.virtual_memory()
@@ -97,6 +105,17 @@ class SystemControl:
             return {"type": "file_list", "message": "\n".join(lines), "files": [str(i) for i in items]}
         except PermissionError:
             return {"type": "error", "message": f"No tengo permisos para leer '{path}'."}
+
+    def _scrape(self, url: str) -> dict:
+        result = crawl_url(url)
+        if not result:
+            return {"type": "error", "message": f"No pude acceder a {url}."}
+        content = result["content"][:2000]
+        return {
+            "type": "scrape",
+            "message": f"**{result['title']}**\n\n{content}\n\nFuente: {result['url']}",
+            "data": {"title": result["title"], "url": result["url"], "content": result["content"]}
+        }
 
     def _launch_app(self, app: str) -> dict:
         app_map = {
