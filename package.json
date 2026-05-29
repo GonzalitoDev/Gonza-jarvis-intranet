@@ -24,7 +24,8 @@
   },
   "build": {
     "appId": "com.jarvis.intranet-assistant",
-    "productName": "JARVIS Intranet Assistant",
+      "productName": "JARVIS Intranet Assistant",
+      "artifactName": "JARVIS-Intranet-Assistant-Setup-${version}.${ext}",
     "directories": {
       "output": "dist"
     },
