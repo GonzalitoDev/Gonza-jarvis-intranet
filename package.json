@@ -1,0 +1,61 @@
+{
+  "name": "jarvis-intranet",
+  "version": "1.0.1",
+  "description": "JARVIS Intranet Assistant - Buscador y asistente local para intranets",
+  "author": "Gonza",
+  "repository": "github:GonzalitoDev/Gonza-jarvis-intranet",
+  "main": "electron/main.js",
+  "scripts": {
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && python -m uvicorn main:app --reload --host 127.0.0.1 --port 8765",
+    "dev:electron": "cross-env NODE_ENV=development electron .",
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\" \"sleep 3 && npm run dev:electron\"",
+    "build:backend": "cd backend && pyinstaller --onefile --name jarvis-backend main.py",
+    "build:frontend": "cd frontend && npm run build",
+    "build": "npm run build:backend && npm run build:frontend && electron-builder",
+    "postinstall": "cd frontend && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1",
+    "cross-env": "^7.0.3",
+    "electron": "^32.1.0",
+    "electron-builder": "^26.8.1",
+    "electron-packager": "^17.1.2"
+  },
+  "build": {
+    "appId": "com.jarvis.intranet-assistant",
+    "productName": "JARVIS Intranet Assistant",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "electron/**/*",
+      "frontend/dist/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "backend/dist/jarvis-backend.exe",
+        "to": "jarvis-backend.exe"
+      }
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.3"
+  }
+}
