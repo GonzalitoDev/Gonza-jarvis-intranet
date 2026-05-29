@@ -24,7 +24,7 @@ function nextId() {
 }
 
 export default function App() {
-  const { connected, loading, pages, query, executeCommand, crawlUrl, refreshPages } = useBackend()
+  const { connected, loading, pages, crawlProgress, query, executeCommand, crawlUrl, startLegalCrawl, stopLegalCrawl, refreshPages } = useBackend()
   const [messages, setMessages] = useState<Message[]>([])
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ status: 'idle' })
 
@@ -81,12 +81,12 @@ export default function App() {
 
   return (
     <div className="app">
-      <Sidebar pages={pages} onCrawl={handleCrawl} loading={loading} />
+      <Sidebar pages={pages} onCrawl={handleCrawl} loading={loading} crawlProgress={crawlProgress} onStartLegalCrawl={startLegalCrawl} onStopLegalCrawl={stopLegalCrawl} />
       <main className="main">
         <Chat messages={messages} loading={loading} />
         <SearchBar onSend={handleSend} disabled={loading} />
       </main>
-      <StatusBar connected={connected} loading={loading} pageCount={pages.length} updateStatus={updateStatus} onRestart={handleRestart} />
+      <StatusBar connected={connected} loading={loading} pageCount={pages.length} crawlProgress={crawlProgress} updateStatus={updateStatus} onRestart={handleRestart} />
     </div>
   )
 }

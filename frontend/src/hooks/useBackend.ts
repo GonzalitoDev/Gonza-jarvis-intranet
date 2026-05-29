@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
-import type { BackendResponse, Page } from '../types'
+import type { BackendResponse, Page, CrawlProgress } from '../types'
 
 const BACKEND_URL = 'http://127.0.0.1:8765'
 
@@ -7,6 +7,7 @@ export function useBackend() {
   const [connected, setConnected] = useState(false)
   const [loading, setLoading] = useState(false)
   const [pages, setPages] = useState<Page[]>([])
+  const [crawlProgress, setCrawlProgress] = useState<CrawlProgress | null>(null)
 
   useEffect(() => {
     fetch(`${BACKEND_URL}/health`)
@@ -14,6 +15,20 @@ export function useBackend() {
       .then(() => setConnected(true))
       .catch(() => setConnected(false))
   }, [])
+
+  useEffect(() => {
+    if (!connected) return
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/crawl/legal/status`)
+        const data = await res.json()
+        setCrawlProgress(data)
+      } catch {
+        // ignore
+      }
+    }, 2000)
+    return () => clearInterval(interval)
+  }, [connected])
 
   const query = useCallback(async (q: string): Promise<BackendResponse> => {
     setLoading(true)
@@ -61,6 +76,22 @@ export function useBackend() {
     }
   }, [])
 
+  const startLegalCrawl = useCallback(async () => {
+    try {
+      await fetch(`${BACKEND_URL}/crawl/legal/start`, { method: 'POST' })
+    } catch {
+      // ignore
+    }
+  }, [])
+
+  const stopLegalCrawl = useCallback(async () => {
+    try {
+      await fetch(`${BACKEND_URL}/crawl/legal/stop`, { method: 'POST' })
+    } catch {
+      // ignore
+    }
+  }, [])
+
   const refreshPages = useCallback(async () => {
     try {
       const res = await fetch(`${BACKEND_URL}/pages`)
@@ -71,5 +102,5 @@ export function useBackend() {
     }
   }, [])
 
-  return { connected, loading, pages, query, executeCommand, crawlUrl, refreshPages }
+  return { connected, loading, pages, crawlProgress, query, executeCommand, crawlUrl, startLegalCrawl, stopLegalCrawl, refreshPages }
 }

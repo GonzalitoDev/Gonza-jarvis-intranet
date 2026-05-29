@@ -1,21 +1,32 @@
-import type { UpdateStatus as UpdateStatusType } from '../types'
+import type { UpdateStatus as UpdateStatusType, CrawlProgress } from '../types'
 
 interface StatusBarProps {
   connected: boolean
   loading: boolean
   pageCount: number
+  crawlProgress: CrawlProgress | null
   updateStatus: UpdateStatusType
   onRestart: () => void
 }
 
-export default function StatusBar({ connected, loading, pageCount, updateStatus, onRestart }: StatusBarProps) {
+export default function StatusBar({ connected, loading, pageCount, crawlProgress, updateStatus, onRestart }: StatusBarProps) {
+  const isCrawling = crawlProgress?.running ?? false
+
   return (
     <footer className="status-bar">
       <span className={`status-dot ${connected ? 'connected' : 'disconnected'}`} />
       <span>{connected ? 'Backend conectado' : 'Backend desconectado'}</span>
       <span className="status-spacer">|</span>
-      <span>{pageCount} páginas indexadas</span>
-      {loading && (
+      <span>{pageCount} pags indexadas</span>
+      {isCrawling && crawlProgress && (
+        <>
+          <span className="status-spacer">|</span>
+          <span className="status-crawling">
+            Indexando: {crawlProgress.pages_indexed}/{crawlProgress.pages_found} ({crawlProgress.current_source})
+          </span>
+        </>
+      )}
+      {loading && !isCrawling && (
         <>
           <span className="status-spacer">|</span>
           <span className="status-loading">Procesando...</span>

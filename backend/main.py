@@ -1,3 +1,4 @@
+import threading
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -7,6 +8,7 @@ from modules.crawler import crawl_url
 from modules.search_engine import SearchEngine
 from modules.system_control import SystemControl
 from modules.responder import Responder
+from modules.legal_crawler import LegalCrawler
 
 app = FastAPI(title="JARVIS Intranet Assistant")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -14,6 +16,7 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 search_engine = SearchEngine("data/index")
 system = SystemControl()
 responder = Responder(search_engine)
+legal_crawler = LegalCrawler(search_engine)
 
 class CrawlRequest(BaseModel):
     url: str
@@ -47,7 +50,30 @@ def query(req: QueryRequest):
 
 @app.post("/command")
 def command(req: CommandRequest):
-    return system.execute(req.command)
+    result = system.execute(req.command)
+    if "index" in req.command.lower() and "legal" in req.command.lower():
+        legal_crawler.start_all()
+        result = {"type": "crawl_started", "message": "Indexacion legal automatica iniciada en segundo plano"}
+    return result
+
+@app.post("/crawl/legal/start")
+def start_legal_crawl():
+    legal_crawler.start_all()
+    return {"message": "Indexacion legal iniciada"}
+
+@app.post("/crawl/legal/stop")
+def stop_legal_crawl():
+    legal_crawler.stop()
+    return {"message": "Indexacion legal detenida"}
+
+@app.get("/crawl/legal/status")
+def legal_crawl_status():
+    return legal_crawler.get_progress()
+
+@app.on_event("startup")
+def startup():
+    t = threading.Thread(target=legal_crawler.start_all, daemon=True)
+    t.start()
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8765)

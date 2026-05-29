@@ -51,3 +51,15 @@ export type UpdateStatus =
   | { status: 'downloading'; progress: UpdateProgress }
   | { status: 'downloaded'; info: UpdateInfo }
   | { status: 'error'; message: string }
+
+export interface CrawlProgress {
+  running: boolean
+  current_source: string
+  current_url: string
+  pages_found: number
+  pages_indexed: number
+  errors: number
+  sources_completed: number
+  total_sources: number
+  status_text: string
+}
