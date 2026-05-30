@@ -28,7 +28,7 @@ jobs:
         run: pip install -r backend/requirements.txt pyinstaller
 
       - name: Build backend
-        run: pyinstaller --onefile --name jarvis-backend backend/main.py
+        run: pyinstaller --onefile --name jarvis-backend main.py
         working-directory: backend
 
       - name: Install frontend dependencies
