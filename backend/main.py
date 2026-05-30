@@ -1,7 +1,9 @@
+import os
 import threading
 import uvicorn
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
 from modules.crawler import crawl_url
@@ -16,6 +18,10 @@ from modules.osint_tools import (
 
 app = FastAPI(title="JARVIS Intranet Assistant")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+static_dir = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
+if os.path.isdir(static_dir):
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="frontend")
 
 search_engine = SearchEngine("data/index")
 system = SystemControl()
@@ -139,4 +145,4 @@ def startup():
     t.start()
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="127.0.0.1", port=8765)
+    uvicorn.run(app, host="0.0.0.0", port=8765)

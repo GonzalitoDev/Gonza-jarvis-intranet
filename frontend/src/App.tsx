@@ -27,6 +27,7 @@ export default function App() {
   const { connected, loading, pages, crawlProgress, query, executeCommand, crawlUrl, startLegalCrawl, stopLegalCrawl, refreshPages, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail } = useBackend()
   const [messages, setMessages] = useState<Message[]>([])
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ status: 'idle' })
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     refreshPages()
@@ -81,7 +82,10 @@ export default function App() {
 
   return (
     <div className="app">
+      <div className={`sidebar-backdrop ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)} />
       <Sidebar
+        open={sidebarOpen}
+        onToggle={() => setSidebarOpen(s => !s)}
         pages={pages} onCrawl={handleCrawl} loading={loading}
         crawlProgress={crawlProgress} onStartLegalCrawl={startLegalCrawl} onStopLegalCrawl={stopLegalCrawl}
         osintDNS={osintDNS} osintWhois={osintWhois} osintIPGeo={osintIPGeo}
@@ -89,7 +93,7 @@ export default function App() {
         osintSubdomains={osintSubdomains} osintEmail={osintEmail}
       />
       <main className="main">
-        <Chat messages={messages} loading={loading} />
+        <Chat messages={messages} loading={loading} onMenuToggle={() => setSidebarOpen(s => !s)} />
         <SearchBar onSend={handleSend} disabled={loading} />
       </main>
       <StatusBar connected={connected} loading={loading} pageCount={pages.length} crawlProgress={crawlProgress} updateStatus={updateStatus} onRestart={handleRestart} />

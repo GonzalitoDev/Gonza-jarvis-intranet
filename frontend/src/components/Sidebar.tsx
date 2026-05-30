@@ -3,6 +3,8 @@ import type { Page, CrawlProgress } from '../types'
 import OsintPanel from './OsintPanel'
 
 interface SidebarProps {
+  open: boolean
+  onToggle: () => void
   pages: Page[]
   onCrawl: (url: string) => void
   loading: boolean
@@ -29,7 +31,7 @@ const LEGAL_SOURCES = [
   { name: 'Legislacion Senado', url: 'https://www.senado.gob.ar/legislacion' },
 ]
 
-export default function Sidebar({ pages, onCrawl, loading, crawlProgress, onStartLegalCrawl, onStopLegalCrawl, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail }: SidebarProps) {
+export default function Sidebar({ open, onToggle, pages, onCrawl, loading, crawlProgress, onStartLegalCrawl, onStopLegalCrawl, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail }: SidebarProps) {
   const [url, setUrl] = useState('')
   const [showSources, setShowSources] = useState(true)
 
@@ -45,7 +47,11 @@ export default function Sidebar({ pages, onCrawl, loading, crawlProgress, onStar
   const isRunning = progress?.running ?? false
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${open ? ' open' : ''}`}>
+      <div className="sidebar-header">
+        <button className="sidebar-toggle" onClick={onToggle}>✕</button>
+        <h2 className="sidebar-title">JARVIS</h2>
+      </div>
       <div className="sidebar-section">
         <h3>Agregar URL</h3>
         <form onSubmit={handleSubmit} className="crawl-form">

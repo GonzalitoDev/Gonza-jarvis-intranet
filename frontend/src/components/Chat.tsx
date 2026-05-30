@@ -4,13 +4,14 @@ import type { Message, SearchResult } from '../types'
 interface ChatProps {
   messages: Message[]
   loading: boolean
+  onMenuToggle?: () => void
 }
 
 function formatMessage(text: string): string {
   return text.replace(/\n/g, '<br>')
 }
 
-export default function Chat({ messages, loading }: ChatProps) {
+export default function Chat({ messages, loading, onMenuToggle }: ChatProps) {
   const bottomRef = React.useRef<HTMLDivElement>(null)
 
   React.useEffect(() => {
@@ -19,6 +20,7 @@ export default function Chat({ messages, loading }: ChatProps) {
 
   return (
     <div className="chat-container">
+      {onMenuToggle && <button className="chat-menu-btn" onClick={onMenuToggle}>☰</button>}
       {messages.length === 0 && (
         <div className="chat-empty">
           <h2>JARVIS Intranet Assistant</h2>
