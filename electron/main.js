@@ -11,11 +11,18 @@ const isDev = !app.isPackaged
 
 autoUpdater.autoDownload = true
 autoUpdater.autoInstallOnAppQuit = true
-autoUpdater.setFeedURL({
+
+// Usar token de GitHub si está disponible (evita rate limiting)
+const githubToken = process.env.GITHUB_TOKEN || ''
+const feedConfig = {
   provider: 'github',
   repo: 'Gonza-jarvis-intranet',
   owner: 'GonzalitoDev',
-})
+}
+if (githubToken) {
+  feedConfig.token = githubToken
+}
+autoUpdater.setFeedURL(feedConfig)
 
 function getBackendDataDir() {
   const dir = path.join(app.getPath('userData'), 'backend-data')
@@ -76,30 +83,58 @@ function setupAutoUpdater() {
   if (isDev) return
 
   autoUpdater.on('checking-for-update', () => {
+    console.log('[updater] Buscando actualizaciones...')
     mainWindow?.webContents.send('update-status', { status: 'checking' })
   })
 
   autoUpdater.on('update-available', (info) => {
+    console.log('[updater] Actualización disponible:', info.version)
     mainWindow?.webContents.send('update-status', { status: 'available', info })
   })
 
   autoUpdater.on('update-not-available', () => {
+    console.log('[updater] No hay actualizaciones disponibles')
     mainWindow?.webContents.send('update-status', { status: 'not-available' })
   })
 
   autoUpdater.on('error', (err) => {
-    mainWindow?.webContents.send('update-status', { status: 'error', message: err.message })
+    console.error('[updater] Error al buscar actualizaciones:', err.message)
+    // No mostrar errores de red como error crítico - es opcional
+    if (err.message && err.message.includes('404')) {
+      console.log('[updater] No se encontraron releases en GitHub')
+      mainWindow?.webContents.send('update-status', { 
+        status: 'error', 
+        message: 'No hay releases disponibles. Comprueba que existan releases en GitHub.'
+      })
+    } else if (err.message && err.message.includes('ENOTFOUND')) {
+      console.log('[updater] Sin conexión a internet')
+      mainWindow?.webContents.send('update-status', { 
+        status: 'offline', 
+        message: 'Sin conexión a internet. Las actualizaciones se comprobarán más tarde.'
+      })
+    } else {
+      mainWindow?.webContents.send('update-status', { 
+        status: 'error', 
+        message: `Error: ${err.message}`
+      })
+    }
   })
 
   autoUpdater.on('download-progress', (progress) => {
+    console.log(`[updater] Descargando: ${Math.round(progress.percent)}%`)
     mainWindow?.webContents.send('update-status', { status: 'downloading', progress })
   })
 
   autoUpdater.on('update-downloaded', (info) => {
+    console.log('[updater] Actualización descargada:', info.version)
     mainWindow?.webContents.send('update-status', { status: 'downloaded', info })
   })
 
-  autoUpdater.checkForUpdates()
+  try {
+    autoUpdater.checkForUpdates()
+  } catch (err) {
+    console.error('[updater] Error iniciando búsqueda de actualizaciones:', err.message)
+  }
 }
 
 ipcMain.handle('restart-and-update', () => {
