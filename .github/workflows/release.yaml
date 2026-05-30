@@ -42,7 +42,18 @@ jobs:
       - name: Install root dependencies
         run: npm ci
 
-      - name: Build and publish Electron app
+      - name: Build Electron app
+        run: npx electron-builder --publish never
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --publish always
+          GH_TOKEN: ${{ github.token }}
+
+      - name: Create GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" \
+            --title "v$VERSION" \
+            --notes "Release v$VERSION" \
+            dist/*.exe dist/*.blockmap dist/latest.yml
