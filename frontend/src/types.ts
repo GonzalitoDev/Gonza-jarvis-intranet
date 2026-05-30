@@ -63,3 +63,98 @@ export interface CrawlProgress {
   total_sources: number
   status_text: string
 }
+
+export interface OsintResult {
+  type: string
+  title: string
+  timestamp: string
+  data: Record<string, unknown>
+}
+
+export interface OsintDNSResult {
+  target: string
+  type: string
+  results: { type: string; value: string }[]
+}
+
+export interface OsintWhoisResult {
+  target: string
+  raw?: string
+  parsed?: Record<string, string>
+  error?: string
+}
+
+export interface OsintGeoResult {
+  ip: string
+  country?: string
+  countryCode?: string
+  region?: string
+  city?: string
+  zip?: string
+  lat?: number
+  lon?: number
+  isp?: string
+  org?: string
+  as?: string
+  timezone?: string
+  error?: string
+}
+
+export interface OsintPortResult {
+  target: string
+  total_scanned: number
+  open_ports: { port: number; service: string; state: string }[]
+  closed_count: number
+}
+
+export interface OsintSSLResult {
+  hostname: string
+  port: number
+  subject?: Record<string, string>
+  issuer?: Record<string, string>
+  version?: number
+  serialNumber?: string
+  notBefore?: string
+  notAfter?: string
+  cipher?: string
+  cipher_bits?: number
+  cipher_version?: string
+  expired?: boolean
+  error?: string
+}
+
+export interface OsintHeadersResult {
+  url: string
+  status_code?: number
+  server?: string
+  content_type?: string
+  security_headers?: Record<string, string>
+  all_headers?: Record<string, string>
+  final_url?: string
+  error?: string
+}
+
+export interface OsintSubdomainResult {
+  domain: string
+  total_checked: number
+  found: { subdomain: string; ip: string }[]
+  count: number
+}
+
+export interface OsintEmailResult {
+  email: string
+  breached?: boolean
+  breach_count?: number
+  message?: string
+  error?: string
+}
+
+export type OsintToolType =
+  | 'dns'
+  | 'whois'
+  | 'ipgeo'
+  | 'portscan'
+  | 'ssl'
+  | 'headers'
+  | 'subdomains'
+  | 'email'

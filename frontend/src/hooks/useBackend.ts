@@ -102,5 +102,83 @@ export function useBackend() {
     }
   }, [])
 
-  return { connected, loading, pages, crawlProgress, query, executeCommand, crawlUrl, startLegalCrawl, stopLegalCrawl, refreshPages }
+  const osintDNS = useCallback(async (domain: string, type: string = 'A') => {
+    const res = await fetch(`${BACKEND_URL}/osint/dns`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain, type }),
+    })
+    return res.json()
+  }, [])
+
+  const osintWhois = useCallback(async (domain: string) => {
+    const res = await fetch(`${BACKEND_URL}/osint/whois`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain }),
+    })
+    return res.json()
+  }, [])
+
+  const osintIPGeo = useCallback(async (ip: string) => {
+    const res = await fetch(`${BACKEND_URL}/osint/ipgeo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ip }),
+    })
+    return res.json()
+  }, [])
+
+  const osintPortScan = useCallback(async (target: string, ports?: number[]) => {
+    const res = await fetch(`${BACKEND_URL}/osint/portscan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ target, ports }),
+    })
+    return res.json()
+  }, [])
+
+  const osintSSL = useCallback(async (hostname: string, port: number = 443) => {
+    const res = await fetch(`${BACKEND_URL}/osint/ssl`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hostname, port }),
+    })
+    return res.json()
+  }, [])
+
+  const osintHeaders = useCallback(async (url: string) => {
+    const res = await fetch(`${BACKEND_URL}/osint/headers`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    })
+    return res.json()
+  }, [])
+
+  const osintSubdomains = useCallback(async (domain: string) => {
+    const res = await fetch(`${BACKEND_URL}/osint/subdomains`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ domain }),
+    })
+    return res.json()
+  }, [])
+
+  const osintEmail = useCallback(async (email: string) => {
+    const res = await fetch(`${BACKEND_URL}/osint/email`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+    return res.json()
+  }, [])
+
+  return {
+    connected, loading, pages, crawlProgress,
+    query, executeCommand, crawlUrl,
+    startLegalCrawl, stopLegalCrawl, refreshPages,
+    osintDNS, osintWhois, osintIPGeo, osintPortScan,
+    osintSSL, osintHeaders, osintSubdomains, osintEmail,
+  }
 }

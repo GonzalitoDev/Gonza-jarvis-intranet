@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Page, CrawlProgress } from '../types'
+import OsintPanel from './OsintPanel'
 
 interface SidebarProps {
   pages: Page[]
@@ -8,6 +9,14 @@ interface SidebarProps {
   crawlProgress: CrawlProgress | null
   onStartLegalCrawl: () => void
   onStopLegalCrawl: () => void
+  osintDNS: (domain: string, type?: string) => Promise<any>
+  osintWhois: (domain: string) => Promise<any>
+  osintIPGeo: (ip: string) => Promise<any>
+  osintPortScan: (target: string, ports?: number[]) => Promise<any>
+  osintSSL: (hostname: string, port?: number) => Promise<any>
+  osintHeaders: (url: string) => Promise<any>
+  osintSubdomains: (domain: string) => Promise<any>
+  osintEmail: (email: string) => Promise<any>
 }
 
 const LEGAL_SOURCES = [
@@ -20,7 +29,7 @@ const LEGAL_SOURCES = [
   { name: 'Legislacion Senado', url: 'https://www.senado.gob.ar/legislacion' },
 ]
 
-export default function Sidebar({ pages, onCrawl, loading, crawlProgress, onStartLegalCrawl, onStopLegalCrawl }: SidebarProps) {
+export default function Sidebar({ pages, onCrawl, loading, crawlProgress, onStartLegalCrawl, onStopLegalCrawl, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail }: SidebarProps) {
   const [url, setUrl] = useState('')
   const [showSources, setShowSources] = useState(true)
 
@@ -102,6 +111,17 @@ export default function Sidebar({ pages, onCrawl, loading, crawlProgress, onStar
           </>
         )}
       </div>
+
+      <OsintPanel
+        osintDNS={osintDNS}
+        osintWhois={osintWhois}
+        osintIPGeo={osintIPGeo}
+        osintPortScan={osintPortScan}
+        osintSSL={osintSSL}
+        osintHeaders={osintHeaders}
+        osintSubdomains={osintSubdomains}
+        osintEmail={osintEmail}
+      />
 
       <div className="sidebar-section">
         <h3>Paginas Indexadas ({pages.length})</h3>

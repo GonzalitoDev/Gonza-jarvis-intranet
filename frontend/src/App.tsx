@@ -24,7 +24,7 @@ function nextId() {
 }
 
 export default function App() {
-  const { connected, loading, pages, crawlProgress, query, executeCommand, crawlUrl, startLegalCrawl, stopLegalCrawl, refreshPages } = useBackend()
+  const { connected, loading, pages, crawlProgress, query, executeCommand, crawlUrl, startLegalCrawl, stopLegalCrawl, refreshPages, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail } = useBackend()
   const [messages, setMessages] = useState<Message[]>([])
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ status: 'idle' })
 
@@ -81,7 +81,13 @@ export default function App() {
 
   return (
     <div className="app">
-      <Sidebar pages={pages} onCrawl={handleCrawl} loading={loading} crawlProgress={crawlProgress} onStartLegalCrawl={startLegalCrawl} onStopLegalCrawl={stopLegalCrawl} />
+      <Sidebar
+        pages={pages} onCrawl={handleCrawl} loading={loading}
+        crawlProgress={crawlProgress} onStartLegalCrawl={startLegalCrawl} onStopLegalCrawl={stopLegalCrawl}
+        osintDNS={osintDNS} osintWhois={osintWhois} osintIPGeo={osintIPGeo}
+        osintPortScan={osintPortScan} osintSSL={osintSSL} osintHeaders={osintHeaders}
+        osintSubdomains={osintSubdomains} osintEmail={osintEmail}
+      />
       <main className="main">
         <Chat messages={messages} loading={loading} />
         <SearchBar onSend={handleSend} disabled={loading} />
