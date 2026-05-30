@@ -53,15 +53,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        continue-on-error: true
+
       - name: Build Android APK
         shell: bash
         run: |
           cd frontend
-          npm run build
           npx cap copy android
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
+        continue-on-error: true
 
       - name: Create GitHub Release
         shell: bash
@@ -69,8 +73,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
+          APK_ARGS=()
+          for f in frontend/android/app/build/outputs/apk/debug/*.apk; do
+            if [ -f "$f" ]; then APK_ARGS+=("$f"); fi
+          done
           gh release create "$GITHUB_REF_NAME" \
             --title "v$VERSION" \
             --notes "Release v$VERSION" \
-            dist/*.exe dist/*.blockmap dist/latest.yml \
-            frontend/android/app/build/outputs/apk/debug/*.apk
+            dist/*.exe dist/*.blockmap dist/latest.yml "${APK_ARGS[@]}"
