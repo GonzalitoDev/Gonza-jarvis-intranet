@@ -1,6 +1,6 @@
 {
   "name": "jarvis-intranet",
-      "version": "1.1.3",
+  "version": "1.1.4",
   "description": "JARVIS Intranet Assistant - Buscador y asistente local para intranets",
   "author": "Gonza",
   "repository": "github:GonzalitoDev/Gonza-jarvis-intranet",
@@ -24,8 +24,8 @@
   },
   "build": {
     "appId": "com.jarvis.intranet-assistant",
-      "productName": "JARVIS Intranet Assistant",
-      "artifactName": "JARVIS-Intranet-Assistant-Setup-${version}.${ext}",
+    "productName": "JARVIS Intranet Assistant",
+    "artifactName": "JARVIS-Intranet-Assistant-Setup-${version}.${ext}",
     "directories": {
       "output": "dist"
     },
