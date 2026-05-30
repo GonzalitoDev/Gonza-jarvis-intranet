@@ -23,6 +23,24 @@ if (IS_ANDROID) {
   } catch {}
 }
 
+async function safeJson(res: Response): Promise<any> {
+  try {
+    return await res.json()
+  } catch {
+    const text = await res.text()
+    return { error: text || `HTTP ${res.status}` }
+  }
+}
+
+async function apiFetch(url: string, init?: RequestInit): Promise<any> {
+  try {
+    const res = await fetch(url, init)
+    return safeJson(res)
+  } catch (e: any) {
+    return { error: e.message || 'Error de conexión' }
+  }
+}
+
 export function useBackend(backendUrl: string) {
   const [connected, setConnected] = useState(IS_ANDROID)
   const [loading, setLoading] = useState(false)
@@ -34,20 +52,16 @@ export function useBackend(backendUrl: string) {
   useEffect(() => {
     if (IS_ANDROID) { setConnected(true); return }
     if (!backendUrl) { setConnected(false); return }
-    fetch(url('/health'))
-      .then(r => r.json())
-      .then(() => setConnected(true))
+    apiFetch(url('/health'))
+      .then((d: any) => setConnected(!!d.status))
       .catch(() => setConnected(false))
   }, [backendUrl])
 
   useEffect(() => {
     if (!connected || !backendUrl || IS_ANDROID) return
     const interval = setInterval(async () => {
-      try {
-        const res = await fetch(url('/crawl/legal/status'))
-        const data = await res.json()
-        setCrawlProgress(data)
-      } catch {}
+      const d = await apiFetch(url('/crawl/legal/status'))
+      if (!d.error) setCrawlProgress(d)
     }, 2000)
     return () => clearInterval(interval)
   }, [connected, backendUrl])
@@ -58,13 +72,11 @@ export function useBackend(backendUrl: string) {
     }
     setLoading(true)
     try {
-      const res = await fetch(url('/query'), {
+      return await apiFetch(url('/query'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ query: q }),
       })
-      const data: BackendResponse = await res.json()
-      return data
     } finally {
       setLoading(false)
     }
@@ -76,13 +88,11 @@ export function useBackend(backendUrl: string) {
     }
     setLoading(true)
     try {
-      const res = await fetch(url('/command'), {
+      return await apiFetch(url('/command'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command: cmd }),
       })
-      const data: BackendResponse = await res.json()
-      return data
     } finally {
       setLoading(false)
     }
@@ -94,12 +104,11 @@ export function useBackend(backendUrl: string) {
     }
     setLoading(true)
     try {
-      const res = await fetch(url('/crawl'), {
+      const data = await apiFetch(url('/crawl'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: _urlToCrawl }),
       })
-      const data: BackendResponse = await res.json()
       await refreshPages()
       return data
     } finally {
@@ -109,105 +118,90 @@ export function useBackend(backendUrl: string) {
 
   const startLegalCrawl = useCallback(async () => {
     if (nativePlugin) return
-    try {
-      await fetch(url('/crawl/legal/start'), { method: 'POST' })
-    } catch {}
+    await apiFetch(url('/crawl/legal/start'), { method: 'POST' })
   }, [backendUrl])
 
   const stopLegalCrawl = useCallback(async () => {
     if (nativePlugin) return
-    try {
-      await fetch(url('/crawl/legal/stop'), { method: 'POST' })
-    } catch {}
+    await apiFetch(url('/crawl/legal/stop'), { method: 'POST' })
   }, [backendUrl])
 
   const refreshPages = useCallback(async () => {
     if (nativePlugin) return
-    try {
-      const res = await fetch(url('/pages'))
-      const data = await res.json()
-      setPages(data)
-    } catch {}
+    const data = await apiFetch(url('/pages'))
+    if (!data.error) setPages(data)
   }, [backendUrl])
 
   const osintDNS = useCallback(async (domain: string, type: string = 'A') => {
     if (nativePlugin) return nativePlugin.dnsLookup({ domain, type })
-    const res = await fetch(url('/osint/dns'), {
+    return apiFetch(url('/osint/dns'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ domain, type }),
     })
-    return res.json()
   }, [backendUrl])
 
   const osintWhois = useCallback(async (domain: string) => {
     if (nativePlugin) return nativePlugin.whoisLookup({ domain })
-    const res = await fetch(url('/osint/whois'), {
+    return apiFetch(url('/osint/whois'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ domain }),
     })
-    return res.json()
   }, [backendUrl])
 
   const osintIPGeo = useCallback(async (ip: string) => {
     if (nativePlugin) return nativePlugin.ipGeoLookup({ ip })
-    const res = await fetch(url('/osint/ipgeo'), {
+    return apiFetch(url('/osint/ipgeo'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ip }),
     })
-    return res.json()
   }, [backendUrl])
 
   const osintPortScan = useCallback(async (target: string, ports?: number[]) => {
     if (nativePlugin) return nativePlugin.portScan({ target, ports })
-    const res = await fetch(url('/osint/portscan'), {
+    return apiFetch(url('/osint/portscan'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ target, ports }),
     })
-    return res.json()
   }, [backendUrl])
 
   const osintSSL = useCallback(async (hostname: string, port: number = 443) => {
     if (nativePlugin) return nativePlugin.sslCheck({ hostname, port })
-    const res = await fetch(url('/osint/ssl'), {
+    return apiFetch(url('/osint/ssl'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ hostname, port }),
     })
-    return res.json()
   }, [backendUrl])
 
   const osintHeaders = useCallback(async (urlToScan: string) => {
     if (nativePlugin) return nativePlugin.httpHeaders({ url: urlToScan })
-    const res = await fetch(url('/osint/headers'), {
+    return apiFetch(url('/osint/headers'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url: urlToScan }),
     })
-    return res.json()
   }, [backendUrl])
 
   const osintSubdomains = useCallback(async (domain: string) => {
     if (nativePlugin) return nativePlugin.subdomainEnum({ domain })
-    const res = await fetch(url('/osint/subdomains'), {
+    return apiFetch(url('/osint/subdomains'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ domain }),
     })
-    return res.json()
   }, [backendUrl])
 
   const osintEmail = useCallback(async (email: string) => {
     if (nativePlugin) return nativePlugin.emailBreach({ email })
-    const res = await fetch(url('/osint/email'), {
+    return apiFetch(url('/osint/email'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email }),
     })
-    return res.json()
   }, [backendUrl])
 
   return {
