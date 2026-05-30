@@ -16,11 +16,8 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.URL
 import java.security.MessageDigest
-import java.security.cert.X509Certificate
 import javax.net.ssl.SSLContext
 import javax.net.ssl.SSLSocket
-import javax.net.ssl.TrustManager
-import javax.net.ssl.X509TrustManager
 
 @CapacitorPlugin(name = "OSINT")
 class OSINTPlugin : Plugin() {
@@ -151,7 +148,7 @@ class OSINTPlugin : Plugin() {
                 val port = (call.getInt("port", 443) ?: 443).toInt()
                 try {
                     val ctx = SSLContext.getInstance("TLS")
-                    ctx.init(null, arrayOf<TrustManager>(TRUST_ALL), null)
+                    ctx.init(null, null, null)
                     val factory = ctx.socketFactory
                     val sock = factory.createSocket(hostname, port) as SSLSocket
                     sock.soTimeout = 10000
@@ -349,11 +346,5 @@ class OSINTPlugin : Plugin() {
         8443 -> "HTTPS-Alt"; 27017 -> "MongoDB"; else -> "unknown"
     }
 
-    companion object {
-        private val TRUST_ALL = object : X509TrustManager {
-            override fun checkClientTrusted(certs: Array<X509Certificate>, authType: String) {}
-            override fun checkServerTrusted(certs: Array<X509Certificate>, authType: String) {}
-            override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-        }
-    }
+    companion object {}
 }

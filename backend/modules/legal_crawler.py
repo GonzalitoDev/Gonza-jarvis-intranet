@@ -3,7 +3,7 @@ import time
 import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin
-from modules.crawler import crawl_url, _extract_text
+from modules.crawler import crawl_url, _extract_text, _can_crawl
 
 LEGAL_KEYWORDS = [
     "ley", "decreto", "resolucion", "resolución", "normativa", "reglamento",
@@ -29,13 +29,13 @@ LEGAL_URL_PATTERNS = [
 ]
 
 LEGAL_SOURCES = [
-    {"url": "https://www.infoleg.gob.ar", "name": "Infoleg", "max_pages": 1000, "max_depth": 4},
-    {"url": "https://www.boletinoficial.gob.ar", "name": "Boletin Oficial", "max_pages": 500, "max_depth": 3},
-    {"url": "https://www.saij.gob.ar", "name": "SAIJ", "max_pages": 500, "max_depth": 3},
-    {"url": "https://www.argentina.gob.ar/normativa", "name": "Normativa Argentina", "max_pages": 500, "max_depth": 4},
-    {"url": "https://www.csjn.gov.ar", "name": "CSJN", "max_pages": 300, "max_depth": 3},
-    {"url": "https://www.diputados.gob.ar/legislacion", "name": "Legislacion Diputados", "max_pages": 300, "max_depth": 3},
-    {"url": "https://www.senado.gob.ar/legislacion", "name": "Legislacion Senado", "max_pages": 300, "max_depth": 3},
+    {"url": "https://www.infoleg.gob.ar", "name": "Infoleg", "max_pages": 200, "max_depth": 2},
+    {"url": "https://www.boletinoficial.gob.ar", "name": "Boletin Oficial", "max_pages": 100, "max_depth": 2},
+    {"url": "https://www.saij.gob.ar", "name": "SAIJ", "max_pages": 100, "max_depth": 2},
+    {"url": "https://www.argentina.gob.ar/normativa", "name": "Normativa Argentina", "max_pages": 100, "max_depth": 2},
+    {"url": "https://www.csjn.gov.ar", "name": "CSJN", "max_pages": 50, "max_depth": 2},
+    {"url": "https://www.diputados.gob.ar/legislacion", "name": "Legislacion Diputados", "max_pages": 50, "max_depth": 2},
+    {"url": "https://www.senado.gob.ar/legislacion", "name": "Legislacion Senado", "max_pages": 50, "max_depth": 2},
 ]
 
 class LegalCrawler:
@@ -100,6 +100,8 @@ class LegalCrawler:
             self.progress["pages_found"] = len(visited)
 
             try:
+                if not _can_crawl(url):
+                    continue
                 resp = requests.get(url, timeout=10, headers=headers)
                 if resp.status_code != 200:
                     continue
@@ -124,7 +126,7 @@ class LegalCrawler:
                             if clean_url not in visited:
                                 queue.append((clean_url, depth + 1))
 
-                time.sleep(0.3)
+                time.sleep(1.0)
 
             except requests.RequestException:
                 self.progress["errors"] += 1

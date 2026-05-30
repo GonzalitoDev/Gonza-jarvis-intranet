@@ -2,6 +2,7 @@
   "name": "jarvis-intranet",
   "version": "1.1.5",
   "description": "JARVIS Intranet Assistant - Buscador y asistente local para intranets",
+  "license": "MIT",
   "author": "Gonza",
   "repository": "github:GonzalitoDev/Gonza-jarvis-intranet",
   "main": "electron/main.js",

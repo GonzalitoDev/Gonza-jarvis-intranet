@@ -29,7 +29,26 @@ def _extract_text(soup: BeautifulSoup) -> str:
         tag.decompose()
     return soup.get_text(separator=" ", strip=True)
 
+def _can_crawl(url: str) -> bool:
+    parsed = urlparse(url)
+    robots_url = f"{parsed.scheme}://{parsed.netloc}/robots.txt"
+    try:
+        resp = requests.get(robots_url, timeout=5)
+        if resp.status_code == 200:
+            for line in resp.text.splitlines():
+                line = line.strip().lower()
+                if line.startswith("disallow:") and parsed.path:
+                    path = line.split(":", 1)[1].strip()
+                    if path and parsed.path.startswith(path):
+                        return False
+    except requests.RequestException:
+        pass
+    return True
+
 def crawl_url(url: str, timeout: int = 10) -> dict | None:
+    if not _can_crawl(url):
+        return None
+
     cached = _get_cached(url)
     if cached:
         return cached
