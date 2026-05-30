@@ -1,6 +1,6 @@
 {
   "name": "jarvis-intranet",
-      "version": "1.0.3",
+      "version": "1.1.0",
   "description": "JARVIS Intranet Assistant - Buscador y asistente local para intranets",
   "author": "Gonza",
   "repository": "github:GonzalitoDev/Gonza-jarvis-intranet",
@@ -54,6 +54,11 @@
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "GonzalitoDev",
+      "repo": "Gonza-jarvis-intranet"
     }
   },
   "dependencies": {

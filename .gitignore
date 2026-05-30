@@ -10,5 +10,4 @@ backend/modules/__pycache__/
 dist/
 *.exe
 *.blockmap
-*.yml
 .DS_Store
