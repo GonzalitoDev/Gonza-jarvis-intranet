@@ -11,6 +11,20 @@ from modules.crawler import crawl_url
 NOTES_DIR = Path("data/notes")
 NOTES_DIR.mkdir(parents=True, exist_ok=True)
 
+# Whitelist de directorios accesibles para seguridad
+ALLOWED_PATHS = [
+    ".",  # Directorio actual
+    "data",
+    "data/notes",
+    "data/index",
+    "data/cache",
+    "frontend",
+    "frontend/dist",
+    "backend",
+    "backend/modules",
+    "electron",
+]
+
 class SystemControl:
     def execute(self, command: str) -> dict:
         cmd_lower = command.lower().strip()
@@ -93,7 +107,32 @@ class SystemControl:
 
     def _list_files(self, path: str) -> dict:
         try:
-            p = Path(path)
+            # Normalizar la ruta
+            p = Path(path).resolve()
+            
+            # Verificar si la ruta está en la whitelist
+            path_str = str(p)
+            is_allowed = False
+            
+            # Permitir rutas que empiecen con cualquiera de las rutas en la whitelist
+            for allowed in ALLOWED_PATHS:
+                allowed_path = Path(allowed).resolve()
+                try:
+                    # Verificar si p está dentro de allowed_path
+                    p.relative_to(allowed_path)
+                    is_allowed = True
+                    break
+                except ValueError:
+                    # No está dentro de esta ruta permitida, continuar
+                    continue
+            
+            # También permitir el directorio actual explícitamente
+            if not is_allowed and p == Path(".").resolve():
+                is_allowed = True
+                
+            if not is_allowed:
+                return {"type": "error", "message": f"Acceso denegado a '{path}'. Ruta no permitida por razones de seguridad."}
+            
             if not p.exists():
                 return {"type": "error", "message": f"La carpeta '{path}' no existe."}
             items = list(p.iterdir())
@@ -105,6 +144,8 @@ class SystemControl:
             return {"type": "file_list", "message": "\n".join(lines), "files": [str(i) for i in items]}
         except PermissionError:
             return {"type": "error", "message": f"No tengo permisos para leer '{path}'."}
+        except Exception as e:
+            return {"type": "error", "message": f"Error al listar archivos: {str(e)}"}
 
     def _scrape(self, url: str) -> dict:
         result = crawl_url(url)
@@ -134,12 +175,22 @@ class SystemControl:
         }
         mapped = app_map.get(app.lower().strip(), app.lower().strip())
         try:
+            # Use list form to avoid shell=True on all platforms
             if platform.system() == "Windows":
-                subprocess.Popen(mapped, shell=True)
+                # On Windows, some apps need .exe extension or special handling
+                # But we'll try the direct approach first
+                subprocess.Popen([mapped])
             elif platform.system() == "Darwin":
                 subprocess.Popen(["open", "-a", mapped])
             else:
                 subprocess.Popen([mapped])
             return {"type": "app_launched", "message": f"Abriendo {app}..."}
         except FileNotFoundError:
+            # Try with .exe extension on Windows as fallback
+            if platform.system() == "Windows":
+                try:
+                    subprocess.Popen([mapped + ".exe"])
+                    return {"type": "app_launched", "message": f"Abriendo {app}..."}
+                except FileNotFoundError:
+                    pass
             return {"type": "error", "message": f"No encontré la aplicación '{app}'."}

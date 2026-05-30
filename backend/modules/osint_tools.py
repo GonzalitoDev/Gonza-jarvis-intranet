@@ -2,6 +2,7 @@ import socket
 import ssl
 import struct
 import urllib.parse
+import ipaddress
 from datetime import datetime
 from typing import Optional
 
@@ -37,7 +38,99 @@ IPINFO_URL = "http://ip-api.com/json/{}"
 HIBP_API = "https://api.pwnedpasswords.com/range/{}"
 
 
+# Validation functions for security
+def is_private_ip(ip_str: str) -> bool:
+    """Valida si una IP es privada o reservada"""
+    try:
+        ip = ipaddress.ip_address(ip_str)
+        return ip.is_private or ip.is_loopback or ip.is_reserved
+    except (ValueError, ipaddress.AddressValueError):
+        return False
+
+
+def validate_target_domain(domain: str) -> tuple[bool, str]:
+    """
+    Valida un dominio antes de hacer operaciones OSINT.
+    Retorna (es_válido, mensaje_error)
+    """
+    if not domain or len(domain) > 255:
+        return False, "Dominio inválido o muy largo"
+    
+    # Bloquear localhost y IPs privadas disfrazadas
+    if domain.lower() in ["localhost", "127.0.0.1", "0.0.0.0"]:
+        return False, "No se pueden escanear direcciones locales"
+    
+    # Si es una IP, validar que no sea privada
+    try:
+        ipaddress.ip_address(domain)
+        if is_private_ip(domain):
+            return False, "No se pueden escanear redes privadas (192.168.x.x, 10.x.x.x, 172.16-31.x.x)"
+        return True, ""
+    except ValueError:
+        # Es un dominio, no una IP
+        pass
+    
+    # Validar caracteres válidos en dominio
+    import re
+    if not re.match(r'^[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', domain):
+        return False, "Formato de dominio inválido"
+    
+    return True, ""
+
+
+def validate_target_ip(ip_str: str) -> tuple[bool, str]:
+    """
+    Valida una IP antes de operaciones OSINT.
+    Retorna (es_válido, mensaje_error)
+    """
+    try:
+        ip = ipaddress.ip_address(ip_str)
+        if is_private_ip(ip_str):
+            return False, "No se pueden escanear redes privadas"
+        return True, ""
+    except (ValueError, ipaddress.AddressValueError):
+        return False, "IP inválida"
+
+
+def validate_url(url: str) -> tuple[bool, str]:
+    """
+    Valida una URL antes de operaciones como crawling/headers.
+    Retorna (es_válido, mensaje_error)
+    """
+    if not url.startswith(("http://", "https://")):
+        url = "https://" + url
+    
+    try:
+        parsed = urllib.parse.urlparse(url)
+        hostname = parsed.hostname
+        
+        if not hostname:
+            return False, "URL sin hostname válido"
+        
+        # Bloquear localhost
+        if hostname in ["localhost", "127.0.0.1", "0.0.0.0", "::1"]:
+            return False, "No se pueden acceder a direcciones locales"
+        
+        # Validar que no sea IP privada
+        try:
+            ip = ipaddress.ip_address(hostname)
+            if is_private_ip(hostname):
+                return False, "No se pueden acceder a redes privadas"
+        except ValueError:
+            # Es un dominio, no una IP - OK
+            pass
+        
+        return True, ""
+    except Exception as e:
+        return False, f"URL inválida: {str(e)}"
+
+
 def dns_lookup(domain: str, record_type: str = "A") -> dict:
+    # Validar dominio primero
+    is_valid, error_msg = validate_target_domain(domain)
+    if not is_valid:
+        return {"type": "error", "target": domain, "message": f"Validación fallida: {error_msg}"}
+    
     results = []
     try:
         ip = socket.gethostbyname(domain)
@@ -74,6 +167,11 @@ def dns_lookup(domain: str, record_type: str = "A") -> dict:
 
 
 def whois_lookup(domain: str) -> dict:
+    # Validar dominio primero
+    is_valid, error_msg = validate_target_domain(domain)
+    if not is_valid:
+        return {"type": "error", "target": domain, "message": f"Validación fallida: {error_msg}"}
+    
     try:
         import subprocess
         result = subprocess.run(
@@ -126,6 +224,11 @@ def _whois_fallback(domain: str) -> dict:
 
 
 def ip_geolocation(ip: str) -> dict:
+    # Validar IP primero
+    is_valid, error_msg = validate_target_ip(ip)
+    if not is_valid:
+        return {"type": "error", "ip": ip, "message": f"Validación fallida: {error_msg}"}
+    
     try:
         resp = requests.get(IPINFO_URL.format(ip), timeout=10)
         data = resp.json()
@@ -150,10 +253,35 @@ def ip_geolocation(ip: str) -> dict:
 
 
 def port_scan(target: str, ports: Optional[list[int]] = None) -> dict:
+    # Validar objetivo primero
+    is_valid, error_msg = validate_target_domain(target)
+    if not is_valid:
+        # Intentar validar como IP
+        is_valid_ip, error_msg_ip = validate_target_ip(target)
+        if not is_valid_ip:
+            return {"type": "error", "target": target, "message": f"Validación fallida: {error_msg} (o IP: {error_msg_ip})"}
+    
     if ports is None:
         scan_ports = [p[0] for p in COMMON_PORTS]
     else:
-        scan_ports = ports
+        # Validar que los puertos sean válidos
+        scan_ports = []
+        invalid_ports = []
+        for port in ports:
+            try:
+                port_int = int(port)
+                if 1 <= port_int <= 65535:
+                    scan_ports.append(port_int)
+                else:
+                    invalid_ports.append(port)
+            except (ValueError, TypeError):
+                invalid_ports.append(port)
+        
+        if invalid_ports:
+            return {"type": "error", "target": target, "message": f"Puertos inválidos: {invalid_ports}"}
+        
+        if not scan_ports:
+            return {"type": "error", "target": target, "message": "No se especificaron puertos válidos"}
 
     open_ports = []
     for port in scan_ports:
@@ -177,6 +305,11 @@ def port_scan(target: str, ports: Optional[list[int]] = None) -> dict:
 
 
 def ssl_check(hostname: str, port: int = 443) -> dict:
+    # Validar hostname primero
+    is_valid, error_msg = validate_target_domain(hostname)
+    if not is_valid:
+        return {"type": "error", "hostname": hostname, "message": f"Validación fallida: {error_msg}"}
+    
     try:
         ctx = ssl.create_default_context()
         with socket.create_connection((hostname, port), timeout=10) as sock:
@@ -203,6 +336,11 @@ def ssl_check(hostname: str, port: int = 443) -> dict:
 
 
 def http_headers(url: str) -> dict:
+    # Validar URL primero
+    is_valid, error_msg = validate_url(url)
+    if not is_valid:
+        return {"type": "error", "url": url, "message": f"Validación fallida: {error_msg}"}
+    
     if not url.startswith(("http://", "https://")):
         url = "https://" + url
     try:
@@ -231,6 +369,11 @@ def http_headers(url: str) -> dict:
 
 
 def subdomain_enum(domain: str, wordlist: Optional[list[str]] = None) -> dict:
+    # Validar dominio primero
+    is_valid, error_msg = validate_target_domain(domain)
+    if not is_valid:
+        return {"type": "error", "domain": domain, "message": f"Validación fallida: {error_msg}"}
+    
     if wordlist is None:
         wordlist = SUBDOMAIN_WORDLIST
     found = []
@@ -238,7 +381,9 @@ def subdomain_enum(domain: str, wordlist: Optional[list[str]] = None) -> dict:
         full = f"{sub}.{domain}"
         try:
             ip = socket.gethostbyname(full)
-            found.append({"subdomain": full, "ip": ip})
+            # Double-check that the discovered IP is not private
+            if not is_private_ip(ip):
+                found.append({"subdomain": full, "ip": ip})
         except socket.gaierror:
             pass
     return {
@@ -251,6 +396,11 @@ def subdomain_enum(domain: str, wordlist: Optional[list[str]] = None) -> dict:
 
 def email_breach_check(email: str) -> dict:
     import hashlib
+    # Basic email validation
+    import re
+    if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+        return {"email": email, "error": "Formato de email inválido"}
+    
     try:
         h = hashlib.sha1(email.encode()).hexdigest().upper()
         prefix, suffix = h[:5], h[5:]

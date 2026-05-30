@@ -1,6 +1,8 @@
 import hashlib
 import time
 import requests
+import base64
+import os
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin
 from pathlib import Path
@@ -9,20 +11,68 @@ import json
 CACHE_DIR = Path("data/cache")
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
+# Funciones simples de ofuscación para el caché
+def _get_cache_key() -> bytes:
+    """Genera una clave basada en características de la máquina"""
+    # Usamos el MAC address como semilla para generar una clave consistente en esta máquina
+    import uuid
+    mac = uuid.getnode()
+    # Crear una clave determinística pero única para esta máquina
+    key_string = f"jarvis-cache-key-{mac}"
+    return hashlib.sha256(key_string.encode()).digest()[:16]  # 16 bytes para XOR
+
+def _encrypt_data(data: str) -> str:
+    """Ofusca datos usando XOR con clave de máquina"""
+    key = _get_cache_key()
+    encrypted = bytearray()
+    data_bytes = data.encode('utf-8')
+    for i, byte in enumerate(data_bytes):
+        encrypted.append(byte ^ key[i % len(key)])
+    return base64.b64encode(encrypted).decode('utf-8')
+
+def _decrypt_data(encrypted_data: str) -> str:
+    """Desofusca datos"""
+    try:
+        decoded = base64.b64decode(encrypted_data.encode('utf-8'))
+        key = _get_cache_key()
+        decrypted = bytearray()
+        for i, byte in enumerate(decoded):
+            decrypted.append(byte ^ key[i % len(key)])
+        return decrypted.decode('utf-8')
+    except Exception:
+        return ""  # Retornar vacío si falla la desofuscación
+
 def _cache_path(url: str) -> Path:
     hash = hashlib.md5(url.encode()).hexdigest()
-    return CACHE_DIR / f"{hash}.json"
+    return CACHE_DIR / f"{hash}.json.enc"
 
 def _get_cached(url: str) -> dict | None:
     path = _cache_path(url)
     if path.exists():
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                encrypted_json = f.read()
+                decrypted_json = _decrypt_data(encrypted_json)
+                if decrypted_json:
+                    return json.load(decrypted_json)
+        except Exception:
+            # Si falla la desofuscación, eliminar el archivo corrupto
+            try:
+                path.unlink()
+            except:
+                pass
     return None
 
 def _set_cache(url: str, data: dict):
-    with open(_cache_path(url), "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False)
+    try:
+        json_str = json.dumps(data, ensure_ascii=False)
+        encrypted_json = _encrypt_data(json_str)
+        with open(_cache_path(url), "w", encoding="utf-8") as f:
+            f.write(encrypted_json)
+    except Exception:
+        # Fallback: guardar sin encriptar si falla la encriptación
+        with open(_cache_path(url).with_suffix('.json'), "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False)
 
 def _extract_text(soup: BeautifulSoup) -> str:
     for tag in soup(["script", "style", "nav", "footer", "header"]):
