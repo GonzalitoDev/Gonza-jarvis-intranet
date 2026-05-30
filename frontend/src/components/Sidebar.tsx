@@ -52,6 +52,7 @@ export default function Sidebar({ open, onToggle, pages, onCrawl, loading, crawl
         <button className="sidebar-toggle" onClick={onToggle}>✕</button>
         <h2 className="sidebar-title">JARVIS</h2>
       </div>
+      <div className="sidebar-inner">
       <div className="sidebar-section">
         <h3>Agregar URL</h3>
         <form onSubmit={handleSubmit} className="crawl-form">
@@ -141,6 +142,7 @@ export default function Sidebar({ open, onToggle, pages, onCrawl, loading, crawl
           ))}
           {pages.length === 0 && <li className="empty">No hay paginas indexadas</li>}
         </ul>
+      </div>
       </div>
     </aside>
   )
