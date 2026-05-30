@@ -2,7 +2,9 @@
 build/
 local.properties
 .idea/
+.kotlin/
 *.iml
 *.apk
 *.aab
 outputs/
+app/src/main/assets/public/

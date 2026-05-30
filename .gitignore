@@ -1,6 +1,7 @@
 node_modules/
 frontend/node_modules/
 frontend/dist/
+frontend/android/app/src/main/assets/public/
 backend/build/
 backend/dist/
 backend/data/
@@ -10,5 +11,8 @@ backend/modules/__pycache__/
 electron-builder.yml
 dist/
 *.exe
+*.apk
+*.aab
 *.blockmap
+data/
 .DS_Store
