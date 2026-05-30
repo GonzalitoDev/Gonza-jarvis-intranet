@@ -28,7 +28,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '21'
 
       - name: Install Python dependencies
         run: pip install -r backend/requirements.txt pyinstaller
@@ -55,7 +55,10 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-        continue-on-error: true
+
+      - name: Accept Android licenses
+        shell: bash
+        run: yes | "$ANDROID_HOME/tools/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
 
       - name: Build Android APK
         shell: bash
@@ -65,7 +68,6 @@ jobs:
           cd android
           chmod +x gradlew
           ./gradlew assembleDebug
-        continue-on-error: true
 
       - name: Create GitHub Release
         shell: bash
