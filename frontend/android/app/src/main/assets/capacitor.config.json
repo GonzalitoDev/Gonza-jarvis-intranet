@@ -1,0 +1,11 @@
+{
+	"appId": "com.jarvis.intranet",
+	"appName": "JARVIS Intranet",
+	"webDir": "dist",
+	"server": {
+		"cleartext": true
+	},
+	"android": {
+		"allowMixedContent": true
+	}
+}

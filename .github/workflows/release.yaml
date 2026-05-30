@@ -24,6 +24,12 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
       - name: Install Python dependencies
         run: pip install -r backend/requirements.txt pyinstaller
 
@@ -47,6 +53,16 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
 
+      - name: Build Android APK
+        shell: bash
+        run: |
+          cd frontend
+          npm run build
+          npx cap copy android
+          cd android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
       - name: Create GitHub Release
         shell: bash
         env:
@@ -56,4 +72,5 @@ jobs:
           gh release create "$GITHUB_REF_NAME" \
             --title "v$VERSION" \
             --notes "Release v$VERSION" \
-            dist/*.exe dist/*.blockmap dist/latest.yml
+            dist/*.exe dist/*.blockmap dist/latest.yml \
+            frontend/android/app/build/outputs/apk/debug/*.apk
