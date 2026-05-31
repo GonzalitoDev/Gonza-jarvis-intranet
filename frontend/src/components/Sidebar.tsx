@@ -7,6 +7,7 @@ interface SidebarProps {
   onToggle: () => void
   pages: Page[]
   onCrawl: (url: string) => void
+  onScrape: (url: string) => Promise<any>
   loading: boolean
   crawlProgress: CrawlProgress | null
   onStartLegalCrawl: () => void
@@ -33,8 +34,11 @@ const LEGAL_SOURCES = [
   { name: 'Legislacion Senado', url: 'https://www.senado.gob.ar/legislacion' },
 ]
 
-export default function Sidebar({ open, onToggle, pages, onCrawl, loading, crawlProgress, onStartLegalCrawl, onStopLegalCrawl, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail, osintDiscord, osintDiscordInvite }: SidebarProps) {
+export default function Sidebar({ open, onToggle, pages, onCrawl, onScrape, loading, crawlProgress, onStartLegalCrawl, onStopLegalCrawl, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail, osintDiscord, osintDiscordInvite }: SidebarProps) {
   const [url, setUrl] = useState('')
+  const [scrapeUrl, setScrapeUrl] = useState('')
+  const [scrapeResult, setScrapeResult] = useState<any>(null)
+  const [scrapeLoading, setScrapeLoading] = useState(false)
   const [showSources, setShowSources] = useState(true)
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -69,6 +73,64 @@ export default function Sidebar({ open, onToggle, pages, onCrawl, loading, crawl
             Indexar
           </button>
         </form>
+      </div>
+
+      <div className="sidebar-section">
+        <h3>Scrapear URL</h3>
+        <form onSubmit={async (e) => {
+          e.preventDefault()
+          if (!scrapeUrl.trim()) return
+          setScrapeLoading(true)
+          setScrapeResult(null)
+          try {
+            const res = await onScrape(scrapeUrl.trim())
+            setScrapeResult(res)
+          } catch (err) {
+            setScrapeResult({ error: String(err) })
+          } finally {
+            setScrapeLoading(false)
+          }
+        }} className="crawl-form">
+          <input
+            type="url"
+            value={scrapeUrl}
+            onChange={e => setScrapeUrl(e.target.value)}
+            placeholder="https://ejemplo.com/pagina"
+            disabled={scrapeLoading}
+          />
+          <button type="submit" disabled={scrapeLoading || !scrapeUrl.trim()}>
+            {scrapeLoading ? '...' : 'Scrapear'}
+          </button>
+        </form>
+        {scrapeResult && (
+          <div className="scrape-result">
+            {scrapeResult.error ? (
+              <div className="osint-error">Error: {scrapeResult.error}</div>
+            ) : (
+              <>
+                <div className="scrape-field"><strong>Título:</strong> {scrapeResult.title}</div>
+                <div className="scrape-field"><strong>URL:</strong> {scrapeResult.url}</div>
+                <div className="scrape-field"><strong>Contenido:</strong> {scrapeResult.content_length} caracteres</div>
+                <div className="scrape-field"><strong>Links:</strong> {scrapeResult.links?.length ?? 0} encontrados</div>
+                {scrapeResult.links?.length > 0 && (
+                  <details>
+                    <summary>Ver links</summary>
+                    <ul className="scrape-links">
+                      {scrapeResult.links.map((link: string, i: number) => (
+                        <li key={i}><a href={link} target="_blank" rel="noopener noreferrer">{link}</a></li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+                <details>
+                  <summary>Ver contenido extraído</summary>
+                  <pre className="scrape-content">{scrapeResult.content?.slice(0, 3000)}</pre>
+                </details>
+              </>
+            )}
+            <button className="scrape-clear" onClick={() => setScrapeResult(null)}>Limpiar</button>
+          </div>
+        )}
       </div>
 
       <div className="sidebar-section">

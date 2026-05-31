@@ -116,6 +116,20 @@ export function useBackend(backendUrl: string) {
     }
   }, [backendUrl])
 
+  const scrapeUrl = useCallback(async (urlToScrape: string): Promise<any> => {
+    if (nativePlugin) return { type: 'response', message: 'Scraping no disponible en Android', results: [] }
+    setLoading(true)
+    try {
+      return await apiFetch(url('/scrape'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: urlToScrape }),
+      })
+    } finally {
+      setLoading(false)
+    }
+  }, [backendUrl])
+
   const startLegalCrawl = useCallback(async () => {
     if (nativePlugin) return
     await apiFetch(url('/crawl/legal/start'), { method: 'POST' })
@@ -224,7 +238,7 @@ export function useBackend(backendUrl: string) {
 
   return {
     connected, loading, pages, crawlProgress,
-    query, executeCommand, crawlUrl,
+    query, executeCommand, crawlUrl, scrapeUrl,
     startLegalCrawl, stopLegalCrawl, refreshPages,
     osintDNS, osintWhois, osintIPGeo, osintPortScan,
     osintSSL, osintHeaders, osintSubdomains, osintEmail,

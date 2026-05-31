@@ -202,6 +202,21 @@ def crawl(req: CrawlRequest, _=Depends(verify_key)):
         return {"message": "Page indexed", "title": result["title"], "url": result["url"]}
     raise HTTPException(status_code=400, detail="Failed to crawl URL")
 
+@app.post("/scrape")
+@rate_limit(max_calls=20, period=60)
+def scrape(req: CrawlRequest, _=Depends(verify_key)):
+    result = crawl_url(req.url)
+    if result:
+        return {
+            "url": result["url"],
+            "title": result["title"],
+            "content_length": len(result["content"]),
+            "content": result["content"][:5000],
+            "links": result["metadata"]["links"][:30],
+            "crawled_at": result["metadata"]["crawled_at"],
+        }
+    raise HTTPException(status_code=400, detail="Failed to scrape URL")
+
 @app.get("/pages")
 def list_pages(_=Depends(verify_key)):
     return search_engine.list_indexed_pages()

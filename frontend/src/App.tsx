@@ -26,7 +26,7 @@ function nextId() {
 }
 
 export default function App() {
-  const { connected, loading, pages, crawlProgress, query, executeCommand, crawlUrl, startLegalCrawl, stopLegalCrawl, refreshPages, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail, osintDiscord, osintDiscordInvite } = useBackend(BACKEND_URL)
+  const { connected, loading, pages, crawlProgress, query, executeCommand, crawlUrl, scrapeUrl, startLegalCrawl, stopLegalCrawl, refreshPages, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail, osintDiscord, osintDiscordInvite } = useBackend(BACKEND_URL)
   const [messages, setMessages] = useState<Message[]>([])
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ status: 'idle' })
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -91,7 +91,7 @@ export default function App() {
       <Sidebar
         open={sidebarOpen}
         onToggle={() => setSidebarOpen(s => !s)}
-        pages={pages} onCrawl={handleCrawl} loading={loading}
+        pages={pages} onCrawl={handleCrawl} onScrape={scrapeUrl} loading={loading}
         crawlProgress={crawlProgress} onStartLegalCrawl={startLegalCrawl} onStopLegalCrawl={stopLegalCrawl}
         osintDNS={osintDNS} osintWhois={osintWhois} osintIPGeo={osintIPGeo}
         osintPortScan={osintPortScan} osintSSL={osintSSL} osintHeaders={osintHeaders}
