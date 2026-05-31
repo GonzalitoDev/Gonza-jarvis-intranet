@@ -26,7 +26,7 @@ function nextId() {
 }
 
 export default function App() {
-  const { connected, loading, pages, crawlProgress, query, executeCommand, crawlUrl, startLegalCrawl, stopLegalCrawl, refreshPages, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail } = useBackend(BACKEND_URL)
+  const { connected, loading, pages, crawlProgress, query, executeCommand, crawlUrl, startLegalCrawl, stopLegalCrawl, refreshPages, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail, osintDiscord, osintDiscordInvite } = useBackend(BACKEND_URL)
   const [messages, setMessages] = useState<Message[]>([])
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ status: 'idle' })
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -96,6 +96,7 @@ export default function App() {
         osintDNS={osintDNS} osintWhois={osintWhois} osintIPGeo={osintIPGeo}
         osintPortScan={osintPortScan} osintSSL={osintSSL} osintHeaders={osintHeaders}
         osintSubdomains={osintSubdomains} osintEmail={osintEmail}
+        osintDiscord={osintDiscord} osintDiscordInvite={osintDiscordInvite}
       />
       <main className="main">
         <Chat messages={messages} loading={loading} onMenuToggle={() => setSidebarOpen(s => !s)} />

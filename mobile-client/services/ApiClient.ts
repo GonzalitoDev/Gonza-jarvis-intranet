@@ -120,6 +120,23 @@ class ApiClientService {
     return this.instance.get('/crawl/legal/status');
   }
 
+  // Discord OSINT
+  async discordScan(message: string): Promise<ApiResponse<any>> {
+    return this.instance.post('/osint/discord/scan', { message });
+  }
+
+  async discordInvite(code: string): Promise<ApiResponse<any>> {
+    return this.instance.post('/osint/discord/invite', { code });
+  }
+
+  async discordID(snowflake: string): Promise<ApiResponse<any>> {
+    return this.instance.post('/osint/discord/id', { snowflake });
+  }
+
+  async discordURLs(urls: string[]): Promise<ApiResponse<any>> {
+    return this.instance.post('/osint/discord/urls', { urls });
+  }
+
   // Commands
   async executeCommand(command: string): Promise<ApiResponse<any>> {
     return this.instance.post('/command', { command });

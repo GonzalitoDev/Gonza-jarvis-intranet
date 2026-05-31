@@ -13,9 +13,11 @@ interface OsintPanelProps {
   osintHeaders: (url: string) => Promise<OsintHeadersResult>
   osintSubdomains: (domain: string) => Promise<OsintSubdomainResult>
   osintEmail: (email: string) => Promise<OsintEmailResult>
+  osintDiscord: (message: string) => Promise<any>
+  osintDiscordInvite: (code: string) => Promise<any>
 }
 
-type ToolId = 'dns' | 'whois' | 'ipgeo' | 'portscan' | 'ssl' | 'headers' | 'subdomains' | 'email'
+type ToolId = 'dns' | 'whois' | 'ipgeo' | 'portscan' | 'ssl' | 'headers' | 'subdomains' | 'email' | 'discord'
 
 interface ToolDef {
   id: ToolId
@@ -32,6 +34,7 @@ const TOOLS: ToolDef[] = [
   { id: 'ipgeo', label: 'IP Geolocation', icon: '📍', category: 'Investigacion', inputLabel: 'Direccion IP', inputPlaceholder: '8.8.8.8' },
   { id: 'subdomains', label: 'Subdominios', icon: '🔗', category: 'Investigacion', inputLabel: 'Dominio', inputPlaceholder: 'ejemplo.com' },
   { id: 'email', label: 'Email Breach Check', icon: '📧', category: 'Investigacion', inputLabel: 'Email', inputPlaceholder: 'user@ejemplo.com' },
+  { id: 'discord', label: 'Discord Scan', icon: '💬', category: 'Investigacion', inputLabel: 'Mensaje', inputPlaceholder: 'Pega el mensaje de Discord aqui...' },
   { id: 'portscan', label: 'Port Scan', icon: '🔌', category: 'Ciberseguridad', inputLabel: 'IP / Host', inputPlaceholder: '192.168.1.1' },
   { id: 'ssl', label: 'SSL Check', icon: '🔒', category: 'Ciberseguridad', inputLabel: 'Hostname', inputPlaceholder: 'ejemplo.com' },
   { id: 'headers', label: 'HTTP Headers', icon: '📡', category: 'Ciberseguridad', inputLabel: 'URL', inputPlaceholder: 'https://ejemplo.com' },
@@ -126,6 +129,9 @@ export default function OsintPanel(props: OsintPanelProps) {
           break
         case 'email':
           data = await props.osintEmail(input.trim())
+          break
+        case 'discord':
+          data = await props.osintDiscord(input.trim())
           break
       }
       setResult(data)
@@ -283,6 +289,35 @@ export default function OsintPanel(props: OsintPanelProps) {
                   <strong>Comprometido:</strong> {d.breached ? `SI (${d.breach_count} filtraciones)` : 'NO'}
                 </div>
                 {d.message && <div className="osint-result-field"><strong>Resultado:</strong> {d.message}</div>}
+              </>
+            )}
+          </div>
+        )
+      }
+      case 'discord': {
+        const d = result as any
+        return (
+          <div className="osint-result-content">
+            {d.error ? <div className="osint-error">{d.error}</div> : (
+              <>
+                <div className="osint-result-field">
+                  <strong>Nivel de riesgo:</strong>{' '}
+                  <span className={`osint-risk-${d.risk_level}`}>{d.risk_level?.toUpperCase()}</span>
+                </div>
+                <div className="osint-result-field"><strong>Puntaje:</strong> {d.risk_score}/100</div>
+                <div className="osint-result-field"><strong>Hallazgos:</strong> {d.total_findings}</div>
+                {d.stats?.alta > 0 && <div className="osint-result-field osint-error"><strong>Altas:</strong> {d.stats.alta}</div>}
+                {d.stats?.media > 0 && <div className="osint-result-field"><strong>Medias:</strong> {d.stats.media}</div>}
+                {d.findings?.length > 0 && (
+                  <details>
+                    <summary>Detalles ({d.findings.length})</summary>
+                    {d.findings.map((f: any, i: number) => (
+                      <div key={i} className={`osint-finding osint-severity-${f.severidad}`}>
+                        <strong>[{f.severidad.toUpperCase()}]</strong> {f.tipo}: {f.valor}
+                      </div>
+                    ))}
+                  </details>
+                )}
               </>
             )}
           </div>

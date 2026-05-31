@@ -19,6 +19,8 @@ interface SidebarProps {
   osintHeaders: (url: string) => Promise<any>
   osintSubdomains: (domain: string) => Promise<any>
   osintEmail: (email: string) => Promise<any>
+  osintDiscord: (message: string) => Promise<any>
+  osintDiscordInvite: (code: string) => Promise<any>
 }
 
 const LEGAL_SOURCES = [
@@ -128,6 +130,8 @@ export default function Sidebar({ open, onToggle, pages, onCrawl, loading, crawl
         osintHeaders={osintHeaders}
         osintSubdomains={osintSubdomains}
         osintEmail={osintEmail}
+        osintDiscord={osintDiscord}
+        osintDiscordInvite={osintDiscordInvite}
       />
 
       <div className="sidebar-section">

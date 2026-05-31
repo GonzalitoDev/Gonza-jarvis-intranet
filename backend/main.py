@@ -21,6 +21,12 @@ from modules.osint_tools import (
     dns_lookup, whois_lookup, ip_geolocation, port_scan,
     ssl_check, http_headers, subdomain_enum, email_breach_check,
 )
+from modules.discord_tools import (
+    scan_message as discord_scan_message,
+    check_invite as discord_check_invite,
+    decode_discord_id,
+    scan_urls as discord_scan_urls,
+)
 
 # Funciones para almacenar API key de forma segura
 def _encrypt_data(data: str) -> str:
@@ -171,6 +177,18 @@ class OsintSubdomainRequest(BaseModel):
 class OsintEmailRequest(BaseModel):
     email: str
 
+class OsintDiscordScanRequest(BaseModel):
+    message: str
+
+class OsintDiscordInviteRequest(BaseModel):
+    code: str
+
+class OsintDiscordIDRequest(BaseModel):
+    snowflake: str
+
+class OsintDiscordURLsRequest(BaseModel):
+    urls: list[str]
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
@@ -300,6 +318,26 @@ def osint_subdomains(req: OsintSubdomainRequest, _=Depends(verify_key)):
 @rate_limit(max_calls=10, period=60)
 def osint_email(req: OsintEmailRequest, _=Depends(verify_key)):
     return email_breach_check(req.email)
+
+@app.post("/osint/discord/scan")
+@rate_limit(max_calls=15, period=60)
+def osint_discord_scan(req: OsintDiscordScanRequest, _=Depends(verify_key)):
+    return discord_scan_message(req.message)
+
+@app.post("/osint/discord/invite")
+@rate_limit(max_calls=10, period=60)
+def osint_discord_invite(req: OsintDiscordInviteRequest, _=Depends(verify_key)):
+    return discord_check_invite(req.code)
+
+@app.post("/osint/discord/id")
+@rate_limit(max_calls=15, period=60)
+def osint_discord_id(req: OsintDiscordIDRequest, _=Depends(verify_key)):
+    return decode_discord_id(req.snowflake)
+
+@app.post("/osint/discord/urls")
+@rate_limit(max_calls=10, period=60)
+def osint_discord_urls(req: OsintDiscordURLsRequest, _=Depends(verify_key)):
+    return discord_scan_urls(req.urls)
 
 @app.on_event("startup")
 def startup():

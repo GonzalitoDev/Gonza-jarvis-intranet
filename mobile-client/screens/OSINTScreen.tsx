@@ -94,6 +94,14 @@ const OSINTScreen = () => {
       placeholder: 'ej: correo@ejemplo.com',
       function: ApiClient.emailBreachCheck.bind(ApiClient),
     },
+    {
+      id: 'discord',
+      name: 'Discord Scanner',
+      icon: 'discord',
+      description: 'Detecta tokens, webhooks, phishing y contenido ilegal',
+      placeholder: 'Pega el mensaje de Discord aqui...',
+      function: ApiClient.discordScan.bind(ApiClient),
+    },
   ];
 
   const handleSelectTool = (tool: OSINTTool) => {

@@ -204,11 +204,30 @@ export function useBackend(backendUrl: string) {
     })
   }, [backendUrl])
 
+  const osintDiscord = useCallback(async (message: string) => {
+    if (nativePlugin) return { type: 'response', message: 'Discord scan no disponible en Android', results: [] }
+    return apiFetch(url('/osint/discord/scan'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
+    })
+  }, [backendUrl])
+
+  const osintDiscordInvite = useCallback(async (code: string) => {
+    if (nativePlugin) return { type: 'response', message: 'Discord invite check no disponible en Android', results: [] }
+    return apiFetch(url('/osint/discord/invite'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    })
+  }, [backendUrl])
+
   return {
     connected, loading, pages, crawlProgress,
     query, executeCommand, crawlUrl,
     startLegalCrawl, stopLegalCrawl, refreshPages,
     osintDNS, osintWhois, osintIPGeo, osintPortScan,
     osintSSL, osintHeaders, osintSubdomains, osintEmail,
+    osintDiscord, osintDiscordInvite,
   }
 }
