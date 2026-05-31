@@ -102,17 +102,12 @@ function setupAutoUpdater() {
     // No mostrar errores de red como error crítico - es opcional
     if (err.message && err.message.includes('404')) {
       console.log('[updater] No se encontraron releases en GitHub')
-      mainWindow?.webContents.send('update-status', { 
-        status: 'error', 
-        message: 'No hay releases disponibles. Comprueba que existan releases en GitHub.'
-      })
+      mainWindow?.webContents.send('update-status', { status: 'not-available' })
     } else if (err.message && err.message.includes('ENOTFOUND')) {
       console.log('[updater] Sin conexión a internet')
-      mainWindow?.webContents.send('update-status', { 
-        status: 'offline', 
-        message: 'Sin conexión a internet. Las actualizaciones se comprobarán más tarde.'
-      })
+      mainWindow?.webContents.send('update-status', { status: 'not-available' })
     } else {
+      console.error('[updater] Error de actualización:', err.message)
       mainWindow?.webContents.send('update-status', { 
         status: 'error', 
         message: `Error: ${err.message}`

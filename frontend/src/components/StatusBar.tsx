@@ -45,7 +45,7 @@ export default function StatusBar({ connected, loading, pageCount, crawlProgress
             Reiniciar e instalar {updateStatus.info.version}
           </button>
         )}
-        {updateStatus.status === 'error' && <span className="update-error">Error al buscar actualizacion</span>}
+        {updateStatus.status === 'error' && <span className="update-error" title={updateStatus.message}>{updateStatus.message || 'Error al buscar actualizacion'}</span>}
       </div>
     </footer>
   )
