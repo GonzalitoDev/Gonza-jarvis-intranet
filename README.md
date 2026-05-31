@@ -1,1 +1,1 @@
-ES UN JARVIS PROPIO
+⚡ JARVIS no es solo una aplicación, es una inteligencia artificial creada para asistir, aprender y evolucionar junto a su usuario. Diseñada para convertir comandos en soluciones y preguntas en respuestas instantáneas. El futuro comienza aquí. 🚀
