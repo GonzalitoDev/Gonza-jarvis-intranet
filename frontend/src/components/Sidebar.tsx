@@ -33,7 +33,7 @@ const LEGAL_SOURCES = [
   { name: 'Legislacion Senado', url: 'https://www.senado.gob.ar/legislacion' },
 ]
 
-export default function Sidebar({ open, onToggle, pages, onCrawl, loading, crawlProgress, onStartLegalCrawl, onStopLegalCrawl, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail }: SidebarProps) {
+export default function Sidebar({ open, onToggle, pages, onCrawl, loading, crawlProgress, onStartLegalCrawl, onStopLegalCrawl, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail, osintDiscord, osintDiscordInvite }: SidebarProps) {
   const [url, setUrl] = useState('')
   const [showSources, setShowSources] = useState(true)
 
