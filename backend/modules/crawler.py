@@ -54,7 +54,7 @@ def _get_cached(url: str) -> dict | None:
                 encrypted_json = f.read()
                 decrypted_json = _decrypt_data(encrypted_json)
                 if decrypted_json:
-                    return json.load(decrypted_json)
+                    return json.loads(decrypted_json)
         except Exception:
             # Si falla la desofuscación, eliminar el archivo corrupto
             try:

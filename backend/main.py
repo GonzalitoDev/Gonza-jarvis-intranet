@@ -209,6 +209,12 @@ def command(req: CommandRequest, _=Depends(verify_key)):
             result = {"type": "crawl_started", "message": "Indexacion legal automatica iniciada en segundo plano"}
     return result
 
+@app.post("/crawl/legal/consent")
+def give_consent(_=Depends(verify_key)):
+    global _crawling_consent
+    _crawling_consent = True
+    return {"message": "Consentimiento otorgado. Ya puede iniciar la indexación legal."}
+
 @app.post("/crawl/legal/start")
 @rate_limit(max_calls=5, period=60)
 def start_legal_crawl(_=Depends(verify_key)):
@@ -226,25 +232,21 @@ class ApiKeyRequest(BaseModel):
 
 @app.post("/setup/api-key")
 def setup_api_key(req: ApiKeyRequest, _=Depends(verify_key)):
-    """Establece una nueva API key (requiere autenticación actual)"""
     global API_KEY
     if not req.api_key.strip():
         raise HTTPException(status_code=400, detail="API key no puede estar vacía")
     
-    # Encriptar y guardar
     encrypted_key = _encrypt_data(req.api_key.strip())
     key_path = os.path.join(os.path.dirname(__file__), ".api_key.enc")
     with open(key_path, "w") as f:
         f.write(encrypted_key)
     
-    # Actualizar en memoria
     API_KEY = req.api_key.strip()
     
     return {"message": "API key actualizada y almacenada de forma segura"}
 
 @app.get("/setup/api-key-status")
 def api_key_status(_=Depends(verify_key)):
-    """Verifica si hay una API key configurada"""
     return {
         "configured": bool(API_KEY),
         "message": "API key configurada" if API_KEY else "API key no configurada"
@@ -258,32 +260,6 @@ def stop_legal_crawl(_=Depends(verify_key)):
 @app.get("/crawl/legal/status")
 def legal_crawl_status(_=Depends(verify_key)):
     return legal_crawler.get_progress()
-
-@app.post("/setup/api-key")
-def setup_api_key(req: ApiKeyRequest, _=Depends(verify_key)):
-    """Establece una nueva API key (requiere autenticación actual)"""
-    global API_KEY
-    if not req.api_key.strip():
-        raise HTTPException(status_code=400, detail="API key no puede estar vacía")
-    
-    # Encriptar y guardar
-    encrypted_key = _encrypt_data(req.api_key.strip())
-    key_path = os.path.join(os.path.dirname(__file__), ".api_key.enc")
-    with open(key_path, "w") as f:
-        f.write(encrypted_key)
-    
-    # Actualizar en memoria
-    API_KEY = req.api_key.strip()
-    
-    return {"message": "API key actualizada y almacenada de forma segura"}
-
-@app.get("/setup/api-key-status")
-def api_key_status(_=Depends(verify_key)):
-    """Verifica si hay una API key configurada"""
-    return {
-        "configured": bool(API_KEY),
-        "message": "API key configurada" if API_KEY else "API key no configurada"
-    }
 
 @app.post("/osint/dns")
 @rate_limit(max_calls=15, period=60)
