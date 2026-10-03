@@ -1,5 +1,6 @@
 import inspect
 import os
+import sys
 import time
 import threading
 import base64
@@ -13,6 +14,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from typing import Optional
+
+# En Vercel el código es de solo lectura y solo /tmp es escribible (y efímero). Todos los módulos
+# usan rutas relativas "data/...", así que se trabaja desde /tmp antes de importarlos.
+IS_VERCEL = bool(os.environ.get("VERCEL"))
+if IS_VERCEL:
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    os.makedirs("/tmp/jarvis", exist_ok=True)
+    os.chdir("/tmp/jarvis")
+
 from modules.crawler import crawl_url
 from modules.search_engine import SearchEngine
 from modules.system_control import SystemControl
@@ -107,6 +117,12 @@ def verify_key(request: Request):
     
     return True
 
+def local_only():
+    # Funciones que solo tienen sentido en la PC del usuario: controlar el sistema, escanear puertos
+    # desde la IP de Vercel o lanzar crawls largos en segundo plano (las funciones se congelan).
+    if IS_VERCEL:
+        raise HTTPException(status_code=403, detail="Disponible solo en la app de escritorio")
+
 # --- Rate limiter simple ---
 _rate_limit_store = {}
 _rate_limit_lock = threading.Lock()
@@ -145,7 +161,8 @@ app.add_middleware(
     # La app empaquetada carga la UI desde file://; según la versión de Chromium el origen llega como
     # "file://" o "null".
     # Es seguro permitirlo: todos los endpoints salvo /health exigen la API key que genera Electron.
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "file://", "null"],
+    # https://gonzalitodev.github.io es la página web de JARVIS en GitHub Pages
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "file://", "null", "https://gonzalitodev.github.io"],
     # Página web de JARVIS en Vercel (producción y previews del proyecto jarvis-intranet-web)
     allow_origin_regex=WEB_ORIGIN_REGEX,
     allow_methods=["GET", "POST"],
@@ -306,7 +323,7 @@ def voice_transcribe(req: VoiceRequest, _=Depends(verify_key)):
 
 @app.post("/command")
 @rate_limit(max_calls=20, period=60)
-def command(req: CommandRequest, _=Depends(verify_key)):
+def command(req: CommandRequest, _=Depends(verify_key), __=Depends(local_only)):
     result = system.execute(req.command)
     if "index" in req.command.lower() and "legal" in req.command.lower():
         if not _crawling_consent:
@@ -320,14 +337,14 @@ def command(req: CommandRequest, _=Depends(verify_key)):
     return result
 
 @app.post("/crawl/legal/consent")
-def give_consent(_=Depends(verify_key)):
+def give_consent(_=Depends(verify_key), __=Depends(local_only)):
     global _crawling_consent
     _crawling_consent = True
     return {"message": "Consentimiento otorgado. Ya puede iniciar la indexación legal."}
 
 @app.post("/crawl/legal/start")
 @rate_limit(max_calls=5, period=60)
-def start_legal_crawl(_=Depends(verify_key)):
+def start_legal_crawl(_=Depends(verify_key), __=Depends(local_only)):
     global _crawling_consent
     if not _crawling_consent:
         raise HTTPException(
@@ -388,7 +405,7 @@ def osint_ipgeo(req: OsintIPRequest, _=Depends(verify_key)):
 
 @app.post("/osint/portscan")
 @rate_limit(max_calls=5, period=60)
-def osint_portscan(req: OsintPortScanRequest, _=Depends(verify_key)):
+def osint_portscan(req: OsintPortScanRequest, _=Depends(verify_key), __=Depends(local_only)):
     return port_scan(req.target, req.ports)
 
 @app.post("/osint/ssl")

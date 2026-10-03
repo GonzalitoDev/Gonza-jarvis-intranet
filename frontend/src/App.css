@@ -895,3 +895,11 @@ body {
   border: none; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
 }
 .connect-form button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+/* Descargas */
+.download-buttons { display: flex; gap: 6px; margin: 4px 0; }
+.download-btn {
+  flex: 1; text-align: center; padding: 8px 10px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  color: #fff; text-decoration: none; background: linear-gradient(135deg, #2563eb, #7c3aed);
+}
+.download-btn:hover { filter: brightness(1.1); }

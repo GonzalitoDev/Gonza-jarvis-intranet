@@ -1,6 +1,14 @@
 // Configuración de conexión con el backend local de JARVIS.
 // En Electron la key viene del proceso principal; en la web se guarda en localStorage.
-export const DEFAULT_BACKEND_URL = 'http://127.0.0.1:8765'
+export const LOCAL_BACKEND_URL = 'http://127.0.0.1:8765'
+
+// Publicada en Vercel (con el servicio backend), la web usa el backend del mismo proyecto (servicio "backend" en /api).
+// En Electron, en el dev server o abierta como archivo, usa el backend local de la PC.
+// GitHub Pages es solo estático: allí la web siempre habla con la app de la PC.
+function isHostedWeb(): boolean {
+  return location.protocol === 'https:' && location.hostname.endsWith('.vercel.app') && !window.electronAPI
+}
+export const DEFAULT_BACKEND_URL = isHostedWeb() ? `${location.origin}/api` : LOCAL_BACKEND_URL
 const URL_KEY = 'jarvis_backend_url'
 const API_KEY = 'jarvis_api_key'
 

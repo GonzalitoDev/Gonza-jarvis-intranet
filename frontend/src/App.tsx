@@ -79,7 +79,8 @@ export default function App() {
     if (isCommand) {
       response = await executeCommand(text)
       // Palabras como "lista" o "día" aparecen en preguntas normales: si no era un comando, preguntar
-      if (response.type === 'unknown') response = await query(text)
+      // En la nube /command no está disponible (403): también se envía como pregunta
+      if (response.type === 'unknown' || (response as any).detail) response = await query(text)
     } else {
       response = await query(text)
     }

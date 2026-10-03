@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { getApiKey, getBackendUrl, saveConnection, isElectron } from '../connection'
+import { getApiKey, getBackendUrl, saveConnection, isElectron, LOCAL_BACKEND_URL } from '../connection'
 
 // Web: conectar con la app de escritorio. Electron: abrir esta misma interfaz en el navegador.
 export default function WebConnect({ connected, onSaved }: { connected: boolean; onSaved: () => void }) {
@@ -10,7 +10,8 @@ export default function WebConnect({ connected, onSaved }: { connected: boolean;
   if (isElectron()) {
     const webUrl = window.electronAPI?.webUrl
     if (!webUrl) return null
-    const link = `${webUrl}/#key=${encodeURIComponent(getApiKey())}`
+    // url= hace que la web hable con esta PC y no con el backend en la nube
+    const link = `${webUrl}/#key=${encodeURIComponent(getApiKey())}&url=${encodeURIComponent(LOCAL_BACKEND_URL)}`
     const copy = async () => {
       try { await navigator.clipboard.writeText(getApiKey()); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {}
     }
