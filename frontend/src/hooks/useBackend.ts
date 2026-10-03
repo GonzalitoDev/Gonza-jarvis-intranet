@@ -24,17 +24,29 @@ if (IS_ANDROID) {
 }
 
 async function safeJson(res: Response): Promise<any> {
+  // Leer el body una sola vez: tras res.json() fallido, res.text() lanza "body already used"
+  const text = await res.text()
   try {
-    return await res.json()
+    return JSON.parse(text)
   } catch {
-    const text = await res.text()
     return { error: text || `HTTP ${res.status}` }
+  }
+}
+
+function getApiKey(): string {
+  try {
+    return localStorage.getItem('jarvis_api_key') || ''
+  } catch {
+    return ''
   }
 }
 
 async function apiFetch(url: string, init?: RequestInit): Promise<any> {
   try {
-    const res = await fetch(url, init)
+    const headers = new Headers(init?.headers)
+    const key = getApiKey()
+    if (key && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${key}`)
+    const res = await fetch(url, { ...init, headers })
     return safeJson(res)
   } catch (e: any) {
     return { error: e.message || 'Error de conexión' }

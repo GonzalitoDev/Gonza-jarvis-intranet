@@ -97,25 +97,27 @@ def verify_key(request: Request):
         raise HTTPException(status_code=401, detail="Formato de autorización inválido. Use: Bearer <token>")
     
     token = auth[7:]  # Remover "Bearer "
-    if token != API_KEY:
+    if not secrets.compare_digest(token.encode(), API_KEY.encode()):
         raise HTTPException(status_code=401, detail="API key inválida")
     
     return True
 
 # --- Rate limiter simple ---
 _rate_limit_store = {}
+_rate_limit_lock = threading.Lock()
 def rate_limit(max_calls: int = 30, period: int = 60):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            ip = "local"
-            now = time.time()
-            window = now // period
-            key = (ip, window)
-            if key not in _rate_limit_store:
-                _rate_limit_store[key] = 0
-            _rate_limit_store[key] += 1
-            if _rate_limit_store[key] > max_calls:
+            window = int(time.time() // period)
+            key = (func.__name__, window)
+            with _rate_limit_lock:
+                # Limpiar ventanas viejas para que el diccionario no crezca indefinidamente
+                for old in [k for k in _rate_limit_store if k[0] == func.__name__ and k[1] < window]:
+                    del _rate_limit_store[old]
+                _rate_limit_store[key] = _rate_limit_store.get(key, 0) + 1
+                exceeded = _rate_limit_store[key] > max_calls
+            if exceeded:
                 raise HTTPException(status_code=429, detail="Demasiadas solicitudes. Esperá un momento.")
             return func(*args, **kwargs)
         return wrapper
@@ -128,10 +130,6 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Authorization", "Content-Type"],
 )
-
-static_dir = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
-if os.path.isdir(static_dir):
-    app.mount("/", StaticFiles(directory=static_dir, html=True), name="frontend")
 
 search_engine = SearchEngine("data/index")
 system = SystemControl()
@@ -354,10 +352,11 @@ def osint_discord_id(req: OsintDiscordIDRequest, _=Depends(verify_key)):
 def osint_discord_urls(req: OsintDiscordURLsRequest, _=Depends(verify_key)):
     return discord_scan_urls(req.urls)
 
-@app.on_event("startup")
-def startup():
-    # No inicia automáticamente el crawling legal - requiere consentimiento explícito del usuario
-    pass
+# El mount de archivos estáticos va al final: montado en "/" antes de las rutas
+# las taparía a todas (Starlette resuelve en orden de registro).
+static_dir = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
+if os.path.isdir(static_dir):
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="frontend")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8765)
