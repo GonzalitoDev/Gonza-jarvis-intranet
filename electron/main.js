@@ -12,7 +12,7 @@ let backendRestarts = 0
 
 const isDev = !app.isPackaged
 
-const WEB_URL = 'https://jarvis-intranet-web.vercel.app'
+const WEB_URL = 'https://gonzalitodev.github.io/Gonza-jarvis-intranet'
 
 // API key compartida entre backend, ventana y la página web. Si el usuario definió JARVIS_API_KEY se
 // respeta; si no, se genera una aleatoria la primera vez y se guarda para que la web siga emparejada.

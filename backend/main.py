@@ -161,7 +161,8 @@ app.add_middleware(
     # La app empaquetada carga la UI desde file://; según la versión de Chromium el origen llega como
     # "file://" o "null".
     # Es seguro permitirlo: todos los endpoints salvo /health exigen la API key que genera Electron.
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "file://", "null"],
+    # https://gonzalitodev.github.io es la página web de JARVIS en GitHub Pages
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "file://", "null", "https://gonzalitodev.github.io"],
     # Página web de JARVIS en Vercel (producción y previews del proyecto jarvis-intranet-web)
     allow_origin_regex=WEB_ORIGIN_REGEX,
     allow_methods=["GET", "POST"],
