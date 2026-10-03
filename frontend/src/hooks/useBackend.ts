@@ -24,17 +24,31 @@ if (IS_ANDROID) {
 }
 
 async function safeJson(res: Response): Promise<any> {
+  // Leer el body una sola vez: tras res.json() fallido, res.text() lanza "body already used"
+  const text = await res.text()
   try {
-    return await res.json()
+    return JSON.parse(text)
   } catch {
-    const text = await res.text()
     return { error: text || `HTTP ${res.status}` }
+  }
+}
+
+function getApiKey(): string {
+  // En Electron la key la genera el proceso principal; fuera de Electron se puede guardar en localStorage
+  if (window.electronAPI?.apiKey) return window.electronAPI.apiKey
+  try {
+    return localStorage.getItem('jarvis_api_key') || ''
+  } catch {
+    return ''
   }
 }
 
 async function apiFetch(url: string, init?: RequestInit): Promise<any> {
   try {
-    const res = await fetch(url, init)
+    const headers = new Headers(init?.headers)
+    const key = getApiKey()
+    if (key && !headers.has('Authorization')) headers.set('Authorization', `Bearer ${key}`)
+    const res = await fetch(url, { ...init, headers })
     return safeJson(res)
   } catch (e: any) {
     return { error: e.message || 'Error de conexión' }
@@ -52,9 +66,13 @@ export function useBackend(backendUrl: string) {
   useEffect(() => {
     if (IS_ANDROID) { setConnected(true); return }
     if (!backendUrl) { setConnected(false); return }
-    apiFetch(url('/health'))
+    // Reintenta solo: el backend puede tardar en arrancar o reiniciarse
+    const check = () => apiFetch(url('/health'))
       .then((d: any) => setConnected(!!d.status))
       .catch(() => setConnected(false))
+    check()
+    const interval = setInterval(check, 3000)
+    return () => clearInterval(interval)
   }, [backendUrl])
 
   useEffect(() => {
@@ -62,6 +80,11 @@ export function useBackend(backendUrl: string) {
     const interval = setInterval(async () => {
       const d = await apiFetch(url('/crawl/legal/status'))
       if (!d.error) setCrawlProgress(d)
+      // Mientras la indexación corre, mantener la lista de páginas al día
+      if (d.running) {
+        const p = await apiFetch(url('/pages'))
+        if (Array.isArray(p)) setPages(p)
+      }
     }, 2000)
     return () => clearInterval(interval)
   }, [connected, backendUrl])
@@ -132,6 +155,8 @@ export function useBackend(backendUrl: string) {
 
   const startLegalCrawl = useCallback(async () => {
     if (nativePlugin) return
+    // Pulsar "iniciar" es el consentimiento explícito del usuario; sin él el backend responde 403
+    await apiFetch(url('/crawl/legal/consent'), { method: 'POST' })
     await apiFetch(url('/crawl/legal/start'), { method: 'POST' })
   }, [backendUrl])
 

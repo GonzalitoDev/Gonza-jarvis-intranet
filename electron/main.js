@@ -2,12 +2,19 @@ const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const { spawn } = require('child_process')
+const crypto = require('crypto')
 const { autoUpdater } = require('electron-updater')
 
 let mainWindow
 let backendProcess
+let quitting = false
+let backendRestarts = 0
 
 const isDev = !app.isPackaged
+
+// API key compartida entre backend y frontend. Si el usuario definió JARVIS_API_KEY se respeta;
+// si no, se genera una aleatoria en cada arranque y solo la conocen este proceso, el backend y la ventana.
+const apiKey = process.env.JARVIS_API_KEY || crypto.randomBytes(32).toString('base64url')
 
 autoUpdater.autoDownload = true
 autoUpdater.autoInstallOnAppQuit = true
@@ -31,9 +38,11 @@ function getBackendDataDir() {
 }
 
 function startBackend() {
+  const env = { ...process.env, JARVIS_API_KEY: apiKey }
   if (isDev) {
     backendProcess = spawn('python', ['-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', '8765'], {
       cwd: path.join(__dirname, '..', 'backend'),
+      env,
       stdio: 'pipe',
     })
   } else {
@@ -41,6 +50,7 @@ function startBackend() {
     const dataDir = getBackendDataDir()
     backendProcess = spawn(backendPath, [], {
       cwd: dataDir,
+      env,
       stdio: 'pipe',
     })
   }
@@ -53,8 +63,18 @@ function startBackend() {
     console.error(`[backend] ${data}`)
   })
 
+  const startedAt = Date.now()
   backendProcess.on('close', (code) => {
     console.log(`[backend] exited with code ${code}`)
+    if (quitting) return
+    // Reinicio automático; si sobrevivió más de un minuto se reinicia el contador
+    if (Date.now() - startedAt > 60000) backendRestarts = 0
+    if (backendRestarts < 5) {
+      backendRestarts++
+      const delay = 1000 * 2 ** backendRestarts
+      console.log(`[backend] reiniciando en ${delay / 1000}s (intento ${backendRestarts})`)
+      setTimeout(() => { if (!quitting) startBackend() }, delay)
+    }
   })
 }
 
@@ -69,6 +89,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      additionalArguments: [`--jarvis-api-key=${apiKey}`],
     },
   })
 
@@ -125,11 +146,14 @@ function setupAutoUpdater() {
     mainWindow?.webContents.send('update-status', { status: 'downloaded', info })
   })
 
-  try {
-    autoUpdater.checkForUpdates()
-  } catch (err) {
-    console.error('[updater] Error iniciando búsqueda de actualizaciones:', err.message)
+  const check = () => {
+    autoUpdater.checkForUpdates().catch((err) => {
+      console.error('[updater] Error iniciando búsqueda de actualizaciones:', err.message)
+    })
   }
+  check()
+  // Volver a buscar cada 4 horas para sesiones largas
+  setInterval(check, 4 * 60 * 60 * 1000)
 }
 
 ipcMain.handle('restart-and-update', () => {
@@ -143,6 +167,7 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
+  quitting = true
   if (backendProcess) {
     backendProcess.kill()
   }
@@ -158,6 +183,7 @@ app.on('activate', () => {
 })
 
 app.on('before-quit', () => {
+  quitting = true
   if (backendProcess) {
     backendProcess.kill()
   }

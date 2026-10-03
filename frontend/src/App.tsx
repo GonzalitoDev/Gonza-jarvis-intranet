@@ -11,6 +11,7 @@ declare global {
   interface Window {
     electronAPI?: {
       platform: string
+      apiKey?: string
       onUpdateStatus: (callback: (data: UpdateStatus) => void) => void
       restartAndUpdate: () => void
     }
