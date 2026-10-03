@@ -8,19 +8,21 @@ import { useVoice } from './hooks/useVoice'
 import { useWakeWord } from './hooks/useWakeWord'
 import type { Message, UpdateStatus } from './types'
 import './App.css'
+import { consumePairingHash, getBackendUrl } from './connection'
 
 declare global {
   interface Window {
     electronAPI?: {
       platform: string
       apiKey?: string
+      webUrl?: string
       onUpdateStatus: (callback: (data: UpdateStatus) => void) => void
       restartAndUpdate: () => void
     }
   }
 }
 
-const BACKEND_URL = 'http://127.0.0.1:8765'
+consumePairingHash()
 
 let msgId = 0
 
@@ -29,7 +31,9 @@ function nextId() {
 }
 
 export default function App() {
-  const { connected, loading, pages, crawlProgress, query, executeCommand, crawlUrl, scrapeUrl, startLegalCrawl, stopLegalCrawl, refreshPages, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail, osintDiscord, osintDiscordInvite, transcribe, getGreeting, ai } = useBackend(BACKEND_URL)
+  // Cambia al guardar otra conexión; el sufijo fuerza a useBackend a reconectar con la key nueva
+  const [conn, setConn] = useState(() => ({ url: getBackendUrl(), v: 0 }))
+  const { connected, loading, pages, crawlProgress, query, executeCommand, crawlUrl, scrapeUrl, startLegalCrawl, stopLegalCrawl, refreshPages, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail, osintDiscord, osintDiscordInvite, transcribe, getGreeting, ai } = useBackend(conn.url, conn.v)
   const voice = useVoice(transcribe)
   const greeted = useRef(false)
   const [messages, setMessages] = useState<Message[]>([])
@@ -133,6 +137,7 @@ export default function App() {
         osintSubdomains={osintSubdomains} osintEmail={osintEmail}
         osintDiscord={osintDiscord} osintDiscordInvite={osintDiscordInvite}
         ai={ai} connected={connected}
+        onConnectionSaved={() => setConn(c => ({ url: getBackendUrl(), v: c.v + 1 }))}
       />
       <main className="main">
         <Chat messages={messages} loading={loading} onMenuToggle={() => setSidebarOpen(s => !s)} />
