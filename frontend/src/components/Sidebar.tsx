@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { Page, CrawlProgress } from '../types'
 import OsintPanel from './OsintPanel'
+import AiSettings, { type AiApi } from './AiSettings'
 
 interface SidebarProps {
   open: boolean
@@ -22,6 +23,8 @@ interface SidebarProps {
   osintEmail: (email: string) => Promise<any>
   osintDiscord: (message: string) => Promise<any>
   osintDiscordInvite: (code: string) => Promise<any>
+  ai: AiApi
+  connected: boolean
 }
 
 const LEGAL_SOURCES = [
@@ -34,7 +37,7 @@ const LEGAL_SOURCES = [
   { name: 'Legislacion Senado', url: 'https://www.senado.gob.ar/legislacion' },
 ]
 
-export default function Sidebar({ open, onToggle, pages, onCrawl, onScrape, loading, crawlProgress, onStartLegalCrawl, onStopLegalCrawl, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail, osintDiscord, osintDiscordInvite }: SidebarProps) {
+export default function Sidebar({ open, onToggle, pages, onCrawl, onScrape, loading, crawlProgress, onStartLegalCrawl, onStopLegalCrawl, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail, osintDiscord, osintDiscordInvite, ai, connected }: SidebarProps) {
   const [url, setUrl] = useState('')
   const [scrapeUrl, setScrapeUrl] = useState('')
   const [scrapeResult, setScrapeResult] = useState<any>(null)
@@ -59,6 +62,7 @@ export default function Sidebar({ open, onToggle, pages, onCrawl, onScrape, load
         <h2 className="sidebar-title">JARVIS</h2>
       </div>
       <div className="sidebar-inner">
+      <AiSettings api={ai} connected={connected} />
       <div className="sidebar-section">
         <h3>Agregar URL</h3>
         <form onSubmit={handleSubmit} className="crawl-form">

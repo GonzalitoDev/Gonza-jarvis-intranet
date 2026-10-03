@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useMemo } from 'react'
 import { Capacitor, registerPlugin } from '@capacitor/core'
 import type { BackendResponse, Page, CrawlProgress } from '../types'
 
@@ -169,6 +169,16 @@ export function useBackend(backendUrl: string) {
     return d.message || ''
   }, [backendUrl])
 
+  const ai = useMemo(() => ({
+    status: () => apiFetch(url('/setup/openrouter')),
+    setKey: (api_key: string) => apiFetch(url('/setup/openrouter'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key }),
+    }),
+    clearKey: () => apiFetch(url('/setup/openrouter/clear'), { method: 'POST' }),
+  }), [backendUrl])
+
   const startLegalCrawl = useCallback(async () => {
     if (nativePlugin) return
     // Pulsar "iniciar" es el consentimiento explícito del usuario; sin él el backend responde 403
@@ -284,6 +294,6 @@ export function useBackend(backendUrl: string) {
     osintDNS, osintWhois, osintIPGeo, osintPortScan,
     osintSSL, osintHeaders, osintSubdomains, osintEmail,
     osintDiscord, osintDiscordInvite,
-    transcribe, getGreeting,
+    transcribe, getGreeting, ai,
   }
 }

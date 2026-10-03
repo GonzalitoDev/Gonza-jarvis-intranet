@@ -19,6 +19,8 @@ from modules.responder import Responder
 from modules.legal_crawler import LegalCrawler
 from modules import personality
 from modules.voice import transcribe
+from modules.llm import OpenRouterLLM
+from modules import llm as llm_module
 from modules.osint_tools import (
     dns_lookup, whois_lookup, ip_geolocation, port_scan,
     ssl_check, http_headers, subdomain_enum, email_breach_check,
@@ -137,6 +139,7 @@ search_engine = SearchEngine("data/index")
 system = SystemControl()
 responder = Responder(search_engine)
 legal_crawler = LegalCrawler(search_engine)
+llm = OpenRouterLLM(_encrypt_data, _decrypt_data)
 
 # Track crawling consent
 _crawling_consent = False
@@ -228,10 +231,43 @@ def list_pages(_=Depends(verify_key)):
 @app.post("/query")
 @rate_limit(max_calls=30, period=60)
 def query(req: QueryRequest, _=Depends(verify_key)):
+    if llm.configured:
+        results = search_engine.search(responder._extract_keywords(req.query) or req.query, limit=3)
+        try:
+            return {"type": "answer", "message": llm.answer(req.query, results), "results": results}
+        except Exception as e:
+            print(f"[llm] {e}")  # Sin IA disponible se sigue con las respuestas locales
     chat = personality.reply(req.query)
     if chat:
         return {"type": "chat", "message": chat}
     return responder.answer(req.query)
+
+class OpenRouterKeyRequest(BaseModel):
+    api_key: str
+
+@app.get("/setup/openrouter")
+def openrouter_status(_=Depends(verify_key)):
+    return {"configured": llm.configured, "model": llm_module.DEFAULT_MODEL}
+
+@app.post("/setup/openrouter")
+@rate_limit(max_calls=10, period=60)
+def openrouter_set_key(req: OpenRouterKeyRequest, _=Depends(verify_key)):
+    key = req.api_key.strip()
+    if not key.startswith("sk-or-"):
+        raise HTTPException(status_code=400, detail="La key de OpenRouter empieza con sk-or-")
+    previous = llm.api_key
+    llm.api_key = key
+    ok, msg = llm.test()
+    if not ok:
+        llm.api_key = previous
+        raise HTTPException(status_code=400, detail=msg)
+    llm.set_key(key)
+    return {"configured": True, "message": "OpenRouter conectado. JARVIS ahora usa IA."}
+
+@app.post("/setup/openrouter/clear")
+def openrouter_clear(_=Depends(verify_key)):
+    llm.clear_key()
+    return {"configured": llm.configured, "message": "API key de OpenRouter eliminada"}
 
 @app.get("/greeting")
 def greeting(_=Depends(verify_key)):

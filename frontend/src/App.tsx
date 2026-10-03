@@ -28,7 +28,7 @@ function nextId() {
 }
 
 export default function App() {
-  const { connected, loading, pages, crawlProgress, query, executeCommand, crawlUrl, scrapeUrl, startLegalCrawl, stopLegalCrawl, refreshPages, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail, osintDiscord, osintDiscordInvite, transcribe, getGreeting } = useBackend(BACKEND_URL)
+  const { connected, loading, pages, crawlProgress, query, executeCommand, crawlUrl, scrapeUrl, startLegalCrawl, stopLegalCrawl, refreshPages, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail, osintDiscord, osintDiscordInvite, transcribe, getGreeting, ai } = useBackend(BACKEND_URL)
   const voice = useVoice(transcribe)
   const greeted = useRef(false)
   const [messages, setMessages] = useState<Message[]>([])
@@ -122,6 +122,7 @@ export default function App() {
         osintPortScan={osintPortScan} osintSSL={osintSSL} osintHeaders={osintHeaders}
         osintSubdomains={osintSubdomains} osintEmail={osintEmail}
         osintDiscord={osintDiscord} osintDiscordInvite={osintDiscordInvite}
+        ai={ai} connected={connected}
       />
       <main className="main">
         <Chat messages={messages} loading={loading} onMenuToggle={() => setSidebarOpen(s => !s)} />

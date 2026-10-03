@@ -861,3 +861,8 @@ body {
   50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
 }
 @media (prefers-reduced-motion: reduce) { .search-bar .mic-btn.listening { animation: none; } }
+
+/* Ajustes de IA */
+.ai-note { font-size: 12px; color: rgba(148, 163, 184, 0.8); margin: 6px 0; line-height: 1.4; }
+.ai-note a { color: #60a5fa; }
+.ai-warn { color: rgba(251, 191, 36, 0.75); }
