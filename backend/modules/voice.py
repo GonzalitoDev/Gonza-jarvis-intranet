@@ -1,8 +1,6 @@
 import base64
 import io
 
-import speech_recognition as sr
-
 MAX_AUDIO_BYTES = 10 * 1024 * 1024
 
 
@@ -13,6 +11,12 @@ def transcribe(audio_b64: str, language: str = "es-AR") -> dict:
         return {"error": "Audio inválido"}
     if not data or len(data) > MAX_AUDIO_BYTES:
         return {"error": "Audio vacío o demasiado largo"}
+
+    # Import diferido: si falta la dependencia, solo falla la voz y no todo el backend
+    try:
+        import speech_recognition as sr
+    except ImportError:
+        return {"error": "Falta instalar SpeechRecognition (pip install -r requirements.txt)."}
 
     recognizer = sr.Recognizer()
     try:

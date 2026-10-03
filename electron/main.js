@@ -37,10 +37,22 @@ function getBackendDataDir() {
   return dir
 }
 
+// Registro del backend en disco para poder diagnosticar por qué no conecta
+function backendLog(line) {
+  try {
+    fs.appendFileSync(path.join(app.getPath('userData'), 'backend.log'), `[${new Date().toISOString()}] ${line}\n`)
+  } catch {}
+}
+
+// En Windows el intérprete puede llamarse "python" o "py"; en Linux/Mac "python3"
+const PYTHON_CANDIDATES = process.platform === 'win32' ? ['python', 'py', 'python3'] : ['python3', 'python']
+let pythonIndex = 0
+
 function startBackend() {
   const env = { ...process.env, JARVIS_API_KEY: apiKey }
   if (isDev) {
-    backendProcess = spawn('python', ['-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', '8765'], {
+    const python = PYTHON_CANDIDATES[pythonIndex]
+    backendProcess = spawn(python, ['-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', '8765'], {
       cwd: path.join(__dirname, '..', 'backend'),
       env,
       stdio: 'pipe',
@@ -57,16 +69,32 @@ function startBackend() {
 
   backendProcess.stdout.on('data', (data) => {
     console.log(`[backend] ${data}`)
+    backendLog(String(data).trim())
   })
 
   backendProcess.stderr.on('data', (data) => {
     console.error(`[backend] ${data}`)
+    backendLog(String(data).trim())
+  })
+
+  // Sin este handler, un ejecutable inexistente (ENOENT) tumba todo el proceso de Electron
+  let spawnFailed = false
+  backendProcess.on('error', (err) => {
+    spawnFailed = true
+    backendLog(`no se pudo iniciar el backend: ${err.message}`)
+    if (isDev && err.code === 'ENOENT' && pythonIndex < PYTHON_CANDIDATES.length - 1) {
+      pythonIndex++
+      backendLog(`probando con ${PYTHON_CANDIDATES[pythonIndex]}`)
+      startBackend()
+    }
   })
 
   const startedAt = Date.now()
   backendProcess.on('close', (code) => {
     console.log(`[backend] exited with code ${code}`)
-    if (quitting) return
+    backendLog(`backend terminó con código ${code}`)
+    // Si ni siquiera arrancó, el handler de 'error' ya decidió qué hacer
+    if (quitting || spawnFailed) return
     // Reinicio automático; si sobrevivió más de un minuto se reinicia el contador
     if (Date.now() - startedAt > 60000) backendRestarts = 0
     if (backendRestarts < 5) {
