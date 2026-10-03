@@ -12,9 +12,25 @@ let backendRestarts = 0
 
 const isDev = !app.isPackaged
 
-// API key compartida entre backend y frontend. Si el usuario definió JARVIS_API_KEY se respeta;
-// si no, se genera una aleatoria en cada arranque y solo la conocen este proceso, el backend y la ventana.
-const apiKey = process.env.JARVIS_API_KEY || crypto.randomBytes(32).toString('base64url')
+const WEB_URL = 'https://jarvis-intranet-web.vercel.app'
+
+// API key compartida entre backend, ventana y la página web. Si el usuario definió JARVIS_API_KEY se
+// respeta; si no, se genera una aleatoria la primera vez y se guarda para que la web siga emparejada.
+function loadApiKey() {
+  if (process.env.JARVIS_API_KEY) return process.env.JARVIS_API_KEY
+  const file = path.join(app.getPath('userData'), 'api-key')
+  try {
+    const saved = fs.readFileSync(file, 'utf8').trim()
+    if (saved) return saved
+  } catch {}
+  const key = crypto.randomBytes(32).toString('base64url')
+  try {
+    fs.mkdirSync(path.dirname(file), { recursive: true })
+    fs.writeFileSync(file, key, { mode: 0o600 })
+  } catch {}
+  return key
+}
+const apiKey = loadApiKey()
 
 autoUpdater.autoDownload = true
 autoUpdater.autoInstallOnAppQuit = true
@@ -117,7 +133,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
-      additionalArguments: [`--jarvis-api-key=${apiKey}`],
+      additionalArguments: [`--jarvis-api-key=${apiKey}`, `--jarvis-web-url=${WEB_URL}`],
     },
   })
 

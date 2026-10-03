@@ -1,3 +1,4 @@
+import inspect
 import os
 import time
 import threading
@@ -128,15 +129,37 @@ def rate_limit(max_calls: int = 30, period: int = 60):
     return decorator
 
 app = FastAPI(title="JARVIS Intranet Assistant")
+WEB_ORIGIN_REGEX = os.environ.get(
+    "JARVIS_WEB_ORIGIN_REGEX",
+    r"https://jarvis-intranet-web(-[a-z0-9-]+)?\.vercel\.app",
+)
+# Starlette >= 1.0 rechaza los preflights de "Private Network Access" salvo que se habilite;
+# en versiones anteriores lo cubre el middleware private_network_access de abajo.
+_PNA_KWARGS = (
+    {"allow_private_network": True}
+    if "allow_private_network" in inspect.signature(CORSMiddleware.__init__).parameters
+    else {}
+)
 app.add_middleware(
     CORSMiddleware,
     # La app empaquetada carga la UI desde file://; según la versión de Chromium el origen llega como
     # "file://" o "null".
     # Es seguro permitirlo: todos los endpoints salvo /health exigen la API key que genera Electron.
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "file://", "null"],
+    # Página web de JARVIS en Vercel (producción y previews del proyecto jarvis-intranet-web)
+    allow_origin_regex=WEB_ORIGIN_REGEX,
     allow_methods=["GET", "POST"],
     allow_headers=["Authorization", "Content-Type"],
+    **_PNA_KWARGS,
 )
+
+@app.middleware("http")
+async def private_network_access(request: Request, call_next):
+    # Chrome pide permiso explícito para que una web pública (Vercel) hable con 127.0.0.1
+    response = await call_next(request)
+    if request.method == "OPTIONS" and request.headers.get("access-control-request-private-network"):
+        response.headers["Access-Control-Allow-Private-Network"] = "true"
+    return response
 
 search_engine = SearchEngine("data/index")
 system = SystemControl()

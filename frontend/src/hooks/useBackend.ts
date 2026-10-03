@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useMemo } from 'react'
 import { Capacitor, registerPlugin } from '@capacitor/core'
 import type { BackendResponse, Page, CrawlProgress } from '../types'
+import { getApiKey } from '../connection'
 
 interface OSINTNative {
   dnsLookup: (opts: { domain: string; type?: string }) => Promise<any>
@@ -33,16 +34,6 @@ async function safeJson(res: Response): Promise<any> {
   }
 }
 
-function getApiKey(): string {
-  // En Electron la key la genera el proceso principal; fuera de Electron se puede guardar en localStorage
-  if (window.electronAPI?.apiKey) return window.electronAPI.apiKey
-  try {
-    return localStorage.getItem('jarvis_api_key') || ''
-  } catch {
-    return ''
-  }
-}
-
 async function apiFetch(url: string, init?: RequestInit): Promise<any> {
   try {
     const headers = new Headers(init?.headers)
@@ -55,7 +46,7 @@ async function apiFetch(url: string, init?: RequestInit): Promise<any> {
   }
 }
 
-export function useBackend(backendUrl: string) {
+export function useBackend(backendUrl: string, connVersion = 0) {
   const [connected, setConnected] = useState(IS_ANDROID)
   const [loading, setLoading] = useState(false)
   const [pages, setPages] = useState<Page[]>([])
@@ -67,13 +58,14 @@ export function useBackend(backendUrl: string) {
     if (IS_ANDROID) { setConnected(true); return }
     if (!backendUrl) { setConnected(false); return }
     // Reintenta solo: el backend puede tardar en arrancar o reiniciarse
-    const check = () => apiFetch(url('/health'))
-      .then((d: any) => setConnected(!!d.status))
+    // Endpoint con autenticación: así una clave incorrecta no aparece como "conectado"
+    const check = () => apiFetch(url('/setup/api-key-status'))
+      .then((d: any) => setConnected(typeof d.configured === 'boolean'))
       .catch(() => setConnected(false))
     check()
     const interval = setInterval(check, 3000)
     return () => clearInterval(interval)
-  }, [backendUrl])
+  }, [backendUrl, connVersion])
 
   useEffect(() => {
     if (!connected || !backendUrl || IS_ANDROID) return
