@@ -128,7 +128,10 @@ class LegalCrawler:
 
                 time.sleep(1.0)
 
-            except requests.RequestException:
+            except Exception as e:
+                # Cualquier error en una página no debe matar el hilo y dejar "running" colgado
+                if not isinstance(e, requests.RequestException):
+                    print(f"[legal_crawler] {url}: {e}")
                 self.progress["errors"] += 1
                 continue
 
@@ -152,14 +155,18 @@ class LegalCrawler:
         }
 
         def run():
-            for source in LEGAL_SOURCES:
-                if not self._running:
-                    break
-                self.progress["status_text"] = f"Indexando {source['name']}..."
-                self.crawl_source(source)
-            self._running = False
-            self.progress["running"] = False
-            self.progress["status_text"] = "Indexacion legal completa"
+            try:
+                for source in LEGAL_SOURCES:
+                    if not self._running:
+                        break
+                    self.progress["status_text"] = f"Indexando {source['name']}..."
+                    self.crawl_source(source)
+                self.progress["status_text"] = "Indexacion legal completa"
+            except Exception as e:
+                self.progress["status_text"] = f"Indexacion detenida por un error: {e}"
+            finally:
+                self._running = False
+                self.progress["running"] = False
 
         self._thread = threading.Thread(target=run, daemon=True)
         self._thread.start()

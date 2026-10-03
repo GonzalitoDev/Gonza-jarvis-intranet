@@ -5,6 +5,8 @@ import base64
 import os
 from bs4 import BeautifulSoup
 from urllib.parse import urlparse, urljoin
+from urllib.robotparser import RobotFileParser
+from functools import lru_cache
 from pathlib import Path
 import json
 
@@ -79,21 +81,26 @@ def _extract_text(soup: BeautifulSoup) -> str:
         tag.decompose()
     return soup.get_text(separator=" ", strip=True)
 
-def _can_crawl(url: str) -> bool:
-    parsed = urlparse(url)
-    robots_url = f"{parsed.scheme}://{parsed.netloc}/robots.txt"
+USER_AGENT = "JARVIS-Intranet-Assistant/1.0"
+
+@lru_cache(maxsize=256)
+def _robots_for(origin: str) -> RobotFileParser | None:
+    """Descarga y parsea robots.txt una sola vez por dominio."""
     try:
-        resp = requests.get(robots_url, timeout=5)
-        if resp.status_code == 200:
-            for line in resp.text.splitlines():
-                line = line.strip().lower()
-                if line.startswith("disallow:") and parsed.path:
-                    path = line.split(":", 1)[1].strip()
-                    if path and parsed.path.startswith(path):
-                        return False
+        resp = requests.get(f"{origin}/robots.txt", timeout=5, headers={"User-Agent": USER_AGENT})
     except requests.RequestException:
-        pass
-    return True
+        return None
+    if resp.status_code != 200:
+        return None
+    rp = RobotFileParser()
+    rp.parse(resp.text.splitlines())
+    return rp
+
+def _can_crawl(url: str) -> bool:
+    # Respeta los grupos User-agent; antes cualquier Disallow (incluso para otros bots) bloqueaba
+    parsed = urlparse(url)
+    rp = _robots_for(f"{parsed.scheme}://{parsed.netloc}")
+    return rp.can_fetch(USER_AGENT, url) if rp else True
 
 def crawl_url(url: str, timeout: int = 10) -> dict | None:
     if not _can_crawl(url):

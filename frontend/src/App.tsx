@@ -5,6 +5,7 @@ import SearchBar from './components/SearchBar'
 import StatusBar from './components/StatusBar'
 import { useBackend } from './hooks/useBackend'
 import { useVoice } from './hooks/useVoice'
+import { useWakeWord } from './hooks/useWakeWord'
 import type { Message, UpdateStatus } from './types'
 import './App.css'
 
@@ -28,7 +29,7 @@ function nextId() {
 }
 
 export default function App() {
-  const { connected, loading, pages, crawlProgress, query, executeCommand, crawlUrl, scrapeUrl, startLegalCrawl, stopLegalCrawl, refreshPages, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail, osintDiscord, osintDiscordInvite, transcribe, getGreeting } = useBackend(BACKEND_URL)
+  const { connected, loading, pages, crawlProgress, query, executeCommand, crawlUrl, scrapeUrl, startLegalCrawl, stopLegalCrawl, refreshPages, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail, osintDiscord, osintDiscordInvite, transcribe, getGreeting, ai } = useBackend(BACKEND_URL)
   const voice = useVoice(transcribe)
   const greeted = useRef(false)
   const [messages, setMessages] = useState<Message[]>([])
@@ -73,6 +74,8 @@ export default function App() {
 
     if (isCommand) {
       response = await executeCommand(text)
+      // Palabras como "lista" o "día" aparecen en preguntas normales: si no era un comando, preguntar
+      if (response.type === 'unknown') response = await query(text)
     } else {
       response = await query(text)
     }
@@ -86,6 +89,13 @@ export default function App() {
     setMessages(prev => [...prev, assistantMsg])
     voice.speak(response.message)
   }, [query, executeCommand, voice.speak])
+
+  const wake = useWakeWord({
+    transcribe,
+    paused: voice.speaking || voice.listening || loading,
+    onWake: () => voice.speak('¿Sí, señor?'),
+    onCommand: text => handleSend(text),
+  })
 
   const handleMic = useCallback(async () => {
     const { text, error } = await voice.listen()
@@ -122,6 +132,7 @@ export default function App() {
         osintPortScan={osintPortScan} osintSSL={osintSSL} osintHeaders={osintHeaders}
         osintSubdomains={osintSubdomains} osintEmail={osintEmail}
         osintDiscord={osintDiscord} osintDiscordInvite={osintDiscordInvite}
+        ai={ai} connected={connected}
       />
       <main className="main">
         <Chat messages={messages} loading={loading} onMenuToggle={() => setSidebarOpen(s => !s)} />
@@ -129,6 +140,7 @@ export default function App() {
           onSend={handleSend} disabled={loading}
           onMic={handleMic} listening={voice.listening}
           voiceEnabled={voice.enabled} onToggleVoice={voice.toggleEnabled}
+          wakeState={wake.state} onToggleWake={wake.toggle}
         />
       </main>
       <StatusBar

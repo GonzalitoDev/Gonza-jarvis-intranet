@@ -1,11 +1,14 @@
 import json
+import re
 import base64
 import hashlib
 import os
+import threading
 from pathlib import Path
 from whoosh.index import create_in, open_dir, exists_in
 from whoosh.fields import Schema, TEXT, ID, STORED
-from whoosh.qparser import MultifieldParser, FuzzyTermPlugin
+from whoosh.qparser import MultifieldParser, FuzzyTermPlugin, OrGroup
+from whoosh.query import Every
 from whoosh.highlight import HtmlFormatter
 
 def _get_search_key() -> bytes:
@@ -38,6 +41,8 @@ def _decrypt_data(encrypted_data: str) -> str:
 
 class SearchEngine:
     def __init__(self, index_dir: str):
+        # Whoosh admite un solo writer a la vez; el crawler legal escribe desde otro hilo
+        self._write_lock = threading.Lock()
         self.index_dir = Path(index_dir)
         self.index_dir.mkdir(parents=True, exist_ok=True)
         self.schema = Schema(
@@ -53,6 +58,10 @@ class SearchEngine:
             self.ix = create_in(str(self.index_dir), self.schema)
 
     def index_page(self, url: str, title: str, content: str, metadata: dict | None = None):
+        with self._write_lock:
+            self._index_page(url, title, content, metadata)
+
+    def _index_page(self, url: str, title: str, content: str, metadata: dict | None = None):
         writer = self.ix.writer()
         metadata_json = json.dumps(metadata or {}, ensure_ascii=False)
         # Ofuscar los metadatos antes de almacenarlos
@@ -68,9 +77,16 @@ class SearchEngine:
     def search(self, query_str: str, limit: int = 5) -> list[dict]:
         results = []
         with self.ix.searcher() as searcher:
-            parser = MultifieldParser(["title", "content"], schema=self.schema)
+            # OrGroup: basta con que coincidan algunas palabras, no todas
+            parser = MultifieldParser(["title", "content"], schema=self.schema, group=OrGroup)
             parser.add_plugin(FuzzyTermPlugin())
-            query = parser.parse(query_str)
+            try:
+                query = parser.parse(query_str)
+            except Exception:
+                # Texto con sintaxis de Whoosh rota (paréntesis, comillas, ":"...): buscar como texto plano
+                query = parser.parse(" ".join(re.findall(r"\w+", query_str)))
+            if query is None or isinstance(query, Every):
+                return results
             hits = searcher.search(query, limit=limit)
             hits.fragmenter.maxchars = 200
             hits.fragmenter.surround = 80

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, shell } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const { spawn } = require('child_process')
@@ -91,6 +91,12 @@ function createWindow() {
       nodeIntegration: false,
       additionalArguments: [`--jarvis-api-key=${apiKey}`],
     },
+  })
+
+  // Los enlaces externos (p. ej. openrouter.ai/keys) se abren en el navegador del sistema
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (/^https?:\/\//.test(url)) shell.openExternal(url)
+    return { action: 'deny' }
   })
 
   if (isDev) {
