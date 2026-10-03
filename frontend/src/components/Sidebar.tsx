@@ -3,6 +3,7 @@ import type { Page, CrawlProgress } from '../types'
 import OsintPanel from './OsintPanel'
 import AiSettings, { type AiApi } from './AiSettings'
 import WebConnect from './WebConnect'
+import DownloadApp from './DownloadApp'
 
 interface SidebarProps {
   open: boolean
@@ -64,6 +65,7 @@ export default function Sidebar({ open, onToggle, pages, onCrawl, onScrape, load
         <h2 className="sidebar-title">JARVIS</h2>
       </div>
       <div className="sidebar-inner">
+      <DownloadApp />
       <WebConnect connected={connected} onSaved={onConnectionSaved} />
       <AiSettings api={ai} connected={connected} />
       <div className="sidebar-section">
