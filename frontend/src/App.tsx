@@ -1,9 +1,10 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import Chat from './components/Chat'
 import Sidebar from './components/Sidebar'
 import SearchBar from './components/SearchBar'
 import StatusBar from './components/StatusBar'
 import { useBackend } from './hooks/useBackend'
+import { useVoice } from './hooks/useVoice'
 import type { Message, UpdateStatus } from './types'
 import './App.css'
 
@@ -27,13 +28,26 @@ function nextId() {
 }
 
 export default function App() {
-  const { connected, loading, pages, crawlProgress, query, executeCommand, crawlUrl, scrapeUrl, startLegalCrawl, stopLegalCrawl, refreshPages, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail, osintDiscord, osintDiscordInvite } = useBackend(BACKEND_URL)
+  const { connected, loading, pages, crawlProgress, query, executeCommand, crawlUrl, scrapeUrl, startLegalCrawl, stopLegalCrawl, refreshPages, osintDNS, osintWhois, osintIPGeo, osintPortScan, osintSSL, osintHeaders, osintSubdomains, osintEmail, osintDiscord, osintDiscordInvite, transcribe, getGreeting } = useBackend(BACKEND_URL)
+  const voice = useVoice(transcribe)
+  const greeted = useRef(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [updateStatus, setUpdateStatus] = useState<UpdateStatus>({ status: 'idle' })
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
   useEffect(() => {
     if (connected) refreshPages()
+  }, [connected])
+
+  // Saludo de JARVIS la primera vez que se conecta al backend
+  useEffect(() => {
+    if (!connected || greeted.current) return
+    greeted.current = true
+    getGreeting().then(text => {
+      if (!text) return
+      setMessages(prev => [...prev, { id: nextId(), role: 'assistant', text }])
+      voice.speak(text)
+    })
   }, [connected])
 
   useEffect(() => {
@@ -70,7 +84,17 @@ export default function App() {
       results: response.results || undefined,
     }
     setMessages(prev => [...prev, assistantMsg])
-  }, [query, executeCommand])
+    voice.speak(response.message)
+  }, [query, executeCommand, voice.speak])
+
+  const handleMic = useCallback(async () => {
+    const { text, error } = await voice.listen()
+    if (text) handleSend(text)
+    else if (error) {
+      setMessages(prev => [...prev, { id: nextId(), role: 'assistant', text: error }])
+      voice.speak(error)
+    }
+  }, [voice.listen, voice.speak, handleSend])
 
   const handleCrawl = useCallback(async (url: string) => {
     const result = await crawlUrl(url)
@@ -101,7 +125,11 @@ export default function App() {
       />
       <main className="main">
         <Chat messages={messages} loading={loading} onMenuToggle={() => setSidebarOpen(s => !s)} />
-        <SearchBar onSend={handleSend} disabled={loading} />
+        <SearchBar
+          onSend={handleSend} disabled={loading}
+          onMic={handleMic} listening={voice.listening}
+          voiceEnabled={voice.enabled} onToggleVoice={voice.toggleEnabled}
+        />
       </main>
       <StatusBar
         connected={connected} loading={loading} pageCount={pages.length}
