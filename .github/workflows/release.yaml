@@ -83,10 +83,9 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-
-      - name: Accept Android licenses
-        shell: bash
-        run: yes | "$ANDROID_HOME/tools/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
+        with:
+          # El paquete por defecto "tools" fue retirado del SDK y hacía fallar el job
+          packages: 'platform-tools'
 
       - name: Build Android APK
         shell: bash
