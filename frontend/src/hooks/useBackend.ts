@@ -66,9 +66,13 @@ export function useBackend(backendUrl: string) {
   useEffect(() => {
     if (IS_ANDROID) { setConnected(true); return }
     if (!backendUrl) { setConnected(false); return }
-    apiFetch(url('/health'))
+    // Reintenta solo: el backend puede tardar en arrancar o reiniciarse
+    const check = () => apiFetch(url('/health'))
       .then((d: any) => setConnected(!!d.status))
       .catch(() => setConnected(false))
+    check()
+    const interval = setInterval(check, 3000)
+    return () => clearInterval(interval)
   }, [backendUrl])
 
   useEffect(() => {
@@ -76,6 +80,11 @@ export function useBackend(backendUrl: string) {
     const interval = setInterval(async () => {
       const d = await apiFetch(url('/crawl/legal/status'))
       if (!d.error) setCrawlProgress(d)
+      // Mientras la indexación corre, mantener la lista de páginas al día
+      if (d.running) {
+        const p = await apiFetch(url('/pages'))
+        if (Array.isArray(p)) setPages(p)
+      }
     }, 2000)
     return () => clearInterval(interval)
   }, [connected, backendUrl])
@@ -146,6 +155,8 @@ export function useBackend(backendUrl: string) {
 
   const startLegalCrawl = useCallback(async () => {
     if (nativePlugin) return
+    // Pulsar "iniciar" es el consentimiento explícito del usuario; sin él el backend responde 403
+    await apiFetch(url('/crawl/legal/consent'), { method: 'POST' })
     await apiFetch(url('/crawl/legal/start'), { method: 'POST' })
   }, [backendUrl])
 

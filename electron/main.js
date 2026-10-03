@@ -7,6 +7,8 @@ const { autoUpdater } = require('electron-updater')
 
 let mainWindow
 let backendProcess
+let quitting = false
+let backendRestarts = 0
 
 const isDev = !app.isPackaged
 
@@ -61,8 +63,18 @@ function startBackend() {
     console.error(`[backend] ${data}`)
   })
 
+  const startedAt = Date.now()
   backendProcess.on('close', (code) => {
     console.log(`[backend] exited with code ${code}`)
+    if (quitting) return
+    // Reinicio automático; si sobrevivió más de un minuto se reinicia el contador
+    if (Date.now() - startedAt > 60000) backendRestarts = 0
+    if (backendRestarts < 5) {
+      backendRestarts++
+      const delay = 1000 * 2 ** backendRestarts
+      console.log(`[backend] reiniciando en ${delay / 1000}s (intento ${backendRestarts})`)
+      setTimeout(() => { if (!quitting) startBackend() }, delay)
+    }
   })
 }
 
@@ -134,11 +146,14 @@ function setupAutoUpdater() {
     mainWindow?.webContents.send('update-status', { status: 'downloaded', info })
   })
 
-  try {
-    autoUpdater.checkForUpdates()
-  } catch (err) {
-    console.error('[updater] Error iniciando búsqueda de actualizaciones:', err.message)
+  const check = () => {
+    autoUpdater.checkForUpdates().catch((err) => {
+      console.error('[updater] Error iniciando búsqueda de actualizaciones:', err.message)
+    })
   }
+  check()
+  // Volver a buscar cada 4 horas para sesiones largas
+  setInterval(check, 4 * 60 * 60 * 1000)
 }
 
 ipcMain.handle('restart-and-update', () => {
@@ -152,6 +167,7 @@ app.whenReady().then(() => {
 })
 
 app.on('window-all-closed', () => {
+  quitting = true
   if (backendProcess) {
     backendProcess.kill()
   }
@@ -167,6 +183,7 @@ app.on('activate', () => {
 })
 
 app.on('before-quit', () => {
+  quitting = true
   if (backendProcess) {
     backendProcess.kill()
   }

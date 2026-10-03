@@ -2,11 +2,39 @@ name: Build and Release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - 'v*'
 
 jobs:
+  # En push a main publica automáticamente si la versión de package.json todavía no tiene release
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.v.outputs.tag }}
+      publish: ${{ steps.v.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: v
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            TAG="$GITHUB_REF_NAME"
+          else
+            TAG="v$(node -p "require('./package.json').version")"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
   release:
+    needs: check
+    if: needs.check.outputs.publish == 'true'
     runs-on: windows-latest
     permissions:
       contents: write
@@ -73,13 +101,14 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.check.outputs.tag }}
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${TAG#v}"
           APK_ARGS=()
           for f in frontend/android/app/build/outputs/apk/debug/*.apk; do
             if [ -f "$f" ]; then APK_ARGS+=("$f"); fi
           done
-          gh release create "$GITHUB_REF_NAME" \
+          gh release create "$TAG" --target "$GITHUB_SHA" \
             --title "v$VERSION" \
             --notes "Release v$VERSION" \
             dist/*.exe dist/*.blockmap dist/latest.yml "${APK_ARGS[@]}"
