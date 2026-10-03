@@ -17,6 +17,8 @@ from modules.search_engine import SearchEngine
 from modules.system_control import SystemControl
 from modules.responder import Responder
 from modules.legal_crawler import LegalCrawler
+from modules import personality
+from modules.voice import transcribe
 from modules.osint_tools import (
     dns_lookup, whois_lookup, ip_geolocation, port_scan,
     ssl_check, http_headers, subdomain_enum, email_breach_check,
@@ -145,6 +147,10 @@ class CrawlRequest(BaseModel):
 class QueryRequest(BaseModel):
     query: str
 
+class VoiceRequest(BaseModel):
+    audio: str  # WAV en base64
+    language: str = "es-AR"
+
 class CommandRequest(BaseModel):
     command: str
 
@@ -222,8 +228,19 @@ def list_pages(_=Depends(verify_key)):
 @app.post("/query")
 @rate_limit(max_calls=30, period=60)
 def query(req: QueryRequest, _=Depends(verify_key)):
-    result = responder.answer(req.query)
-    return result
+    chat = personality.reply(req.query)
+    if chat:
+        return {"type": "chat", "message": chat}
+    return responder.answer(req.query)
+
+@app.get("/greeting")
+def greeting(_=Depends(verify_key)):
+    return {"message": personality.greeting()}
+
+@app.post("/voice/transcribe")
+@rate_limit(max_calls=30, period=60)
+def voice_transcribe(req: VoiceRequest, _=Depends(verify_key)):
+    return transcribe(req.audio, req.language)
 
 @app.post("/command")
 @rate_limit(max_calls=20, period=60)

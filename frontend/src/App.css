@@ -841,3 +841,23 @@ body {
   .osint-tab { width: 28px; height: 28px; font-size: 13px; }
   .status-bar { min-height: 36px; font-size: 9px; }
 }
+
+/* Voz */
+.search-bar .icon-btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0 12px;
+  font-size: 18px;
+  box-shadow: none;
+}
+.search-bar .icon-btn:hover { background: rgba(255, 255, 255, 0.1); box-shadow: none; }
+.search-bar .mic-btn.listening {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.6);
+  animation: mic-pulse 1.2s ease-in-out infinite;
+}
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+  50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+}
+@media (prefers-reduced-motion: reduce) { .search-bar .mic-btn.listening { animation: none; } }

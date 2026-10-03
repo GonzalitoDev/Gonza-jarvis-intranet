@@ -153,6 +153,22 @@ export function useBackend(backendUrl: string) {
     }
   }, [backendUrl])
 
+  const transcribe = useCallback(async (audio: string): Promise<{ text?: string; error?: string }> => {
+    if (nativePlugin) return { error: 'La voz necesita el backend de escritorio' }
+    const d = await apiFetch(url('/voice/transcribe'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ audio }),
+    })
+    return d.text ? { text: d.text } : { error: d.error || d.detail || 'No se pudo reconocer la voz' }
+  }, [backendUrl])
+
+  const getGreeting = useCallback(async (): Promise<string> => {
+    if (nativePlugin) return ''
+    const d = await apiFetch(url('/greeting'))
+    return d.message || ''
+  }, [backendUrl])
+
   const startLegalCrawl = useCallback(async () => {
     if (nativePlugin) return
     // Pulsar "iniciar" es el consentimiento explícito del usuario; sin él el backend responde 403
@@ -268,5 +284,6 @@ export function useBackend(backendUrl: string) {
     osintDNS, osintWhois, osintIPGeo, osintPortScan,
     osintSSL, osintHeaders, osintSubdomains, osintEmail,
     osintDiscord, osintDiscordInvite,
+    transcribe, getGreeting,
   }
 }
