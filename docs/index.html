@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JARVIS Intranet Assistant</title>
+<meta name="description" content="Buscador y asistente local para intranets. Indexa, busca y analiza, todo en tu equipo.">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#070b14;--bg2:#0d1424;--card:rgba(255,255,255,.04);--border:rgba(255,255,255,.09);
+  --text:#e6ecf7;--muted:#93a1bd;--accent:#38bdf8;--accent2:#818cf8;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1100px;margin:0 auto;padding:0 20px}
+.glow{position:fixed;inset:-30% -10% auto;height:80vh;pointer-events:none;z-index:-1;
+  background:radial-gradient(closest-side,rgba(56,189,248,.18),transparent),radial-gradient(closest-side at 70% 40%,rgba(129,140,248,.16),transparent)}
+nav{display:flex;justify-content:space-between;align-items:center;padding:20px 0}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;letter-spacing:.5px}
+.logo img{width:32px;height:32px}
+nav .links{display:flex;gap:22px;color:var(--muted);font-size:.95rem}
+nav .links a:hover{color:var(--text)}
+.hero{text-align:center;padding:90px 0 70px}
+.badge{display:inline-block;border:1px solid var(--border);background:var(--card);padding:6px 14px;border-radius:999px;font-size:.85rem;color:var(--muted);margin-bottom:24px}
+h1{font-size:clamp(2.2rem,6vw,4rem);line-height:1.1;font-weight:800;letter-spacing:-1px}
+.grad{background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero p{max-width:640px;margin:22px auto 0;color:var(--muted);font-size:1.15rem}
+.cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:36px}
+.btn{padding:13px 24px;border-radius:12px;font-weight:600;transition:transform .15s,box-shadow .15s}
+.btn:hover{transform:translateY(-2px)}
+.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));color:#06101f;box-shadow:0 8px 30px rgba(56,189,248,.25)}
+.ghost{border:1px solid var(--border);background:var(--card)}
+#version{margin-top:14px;font-size:.85rem;color:var(--muted);min-height:1.2em}
+section{padding:70px 0}
+h2{font-size:clamp(1.6rem,4vw,2.3rem);text-align:center;margin-bottom:12px}
+.sub{text-align:center;color:var(--muted);margin-bottom:44px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.card{border:1px solid var(--border);background:var(--card);border-radius:16px;padding:24px;backdrop-filter:blur(8px);transition:border-color .2s}
+.card:hover{border-color:rgba(56,189,248,.4)}
+.card .ic{font-size:1.6rem;margin-bottom:12px}
+.card h3{font-size:1.1rem;margin-bottom:6px}
+.card p{color:var(--muted);font-size:.95rem}
+.steps{counter-reset:s;display:grid;gap:14px;max-width:720px;margin:0 auto}
+.step{counter-increment:s;display:flex;gap:16px;align-items:flex-start;border:1px solid var(--border);background:var(--card);border-radius:14px;padding:18px 20px}
+.step::before{content:counter(s);flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;font-weight:700;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#06101f}
+.step p{color:var(--muted)}
+code{background:var(--bg2);border:1px solid var(--border);padding:2px 7px;border-radius:6px;font-size:.88em}
+.warn{max-width:820px;margin:0 auto;border:1px solid rgba(251,191,36,.35);background:rgba(251,191,36,.06);border-radius:14px;padding:20px 24px;color:#f5deb0}
+footer{border-top:1px solid var(--border);padding:30px 0;color:var(--muted);font-size:.85rem;text-align:center}
+footer a{color:var(--accent)}
+.fade{opacity:0;transform:translateY(16px);transition:opacity .6s,transform .6s}
+.fade.in{opacity:1;transform:none}
+@media (max-width:640px){nav .links{display:none}.hero{padding:60px 0 40px}}
+@media (prefers-reduced-motion:reduce){.fade{opacity:1;transform:none;transition:none}.btn{transition:none}}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="wrap">
+  <nav>
+    <a class="logo" href="#"><img src="icon.svg" alt="">JARVIS</a>
+    <div class="links">
+      <a href="#funciones">Funciones</a>
+      <a href="#instalar">Instalar</a>
+      <a href="https://github.com/GonzalitoDev/Gonza-jarvis-intranet">GitHub</a>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <span class="badge">Escritorio · Android · Código abierto (MIT)</span>
+    <h1>Tu asistente <span class="grad">local</span><br>para la intranet</h1>
+    <p>JARVIS indexa páginas, responde preguntas sobre lo que encontró y te da herramientas de análisis de red. Todo corre en tu equipo; nada sale a la nube.</p>
+    <div class="cta">
+      <a class="btn primary" id="download" href="https://github.com/GonzalitoDev/Gonza-jarvis-intranet/releases/latest">Descargar para Windows</a>
+      <a class="btn ghost" href="https://github.com/GonzalitoDev/Gonza-jarvis-intranet">Ver el código</a>
+    </div>
+    <div id="version"></div>
+  </header>
+
+  <section id="funciones" class="fade">
+    <h2>Qué puede hacer</h2>
+    <p class="sub">Un buscador privado con herramientas extra, en una sola app.</p>
+    <div class="grid">
+      <div class="card"><div class="ic">🔎</div><h3>Búsqueda local</h3><p>Indexa URLs con un índice de texto completo y responde en lenguaje natural.</p></div>
+      <div class="card"><div class="ic">🕸️</div><h3>Crawler respetuoso</h3><p>Respeta robots.txt, limita la velocidad y solo indexa fuentes legales con tu consentimiento.</p></div>
+      <div class="card"><div class="ic">🛰️</div><h3>Herramientas OSINT</h3><p>DNS, WHOIS, geolocalización IP, SSL, cabeceras HTTP y subdominios.</p></div>
+      <div class="card"><div class="ic">💬</div><h3>Análisis de Discord</h3><p>Revisa mensajes, invitaciones y enlaces sospechosos, y decodifica IDs.</p></div>
+      <div class="card"><div class="ic">🖥️</div><h3>Control del sistema</h3><p>Consulta CPU, RAM y disco, abre programas y guarda notas con comandos.</p></div>
+      <div class="card"><div class="ic">🔄</div><h3>Siempre al día</h3><p>Se actualiza sola desde GitHub Releases y se recupera si el motor falla.</p></div>
+    </div>
+  </section>
+
+  <section id="instalar" class="fade">
+    <h2>Instalación</h2>
+    <p class="sub">En menos de un minuto.</p>
+    <div class="steps">
+      <div class="step"><div><strong>Descarga el instalador</strong><p>Baja <code>JARVIS-Intranet-Assistant-Setup.exe</code> desde la última release.</p></div></div>
+      <div class="step"><div><strong>Instala y abre</strong><p>El asistente arranca su motor local automáticamente y protege la conexión con una clave aleatoria.</p></div></div>
+      <div class="step"><div><strong>Empieza a preguntar</strong><p>Indexa una URL desde el panel lateral o escribe directamente en el chat.</p></div></div>
+    </div>
+  </section>
+
+  <section class="fade">
+    <div class="warn"><strong>Uso responsable.</strong> Las herramientas de escaneo y enumeración solo deben usarse sobre sistemas propios o con autorización por escrito. Escanear sistemas ajenos puede ser ilegal en tu país.</div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap">
+    © <span id="year"></span> Gonza · Licencia <a href="https://github.com/GonzalitoDev/Gonza-jarvis-intranet/blob/main/LICENSE">MIT</a><br>
+    "JARVIS" se usa solo como nombre del proyecto; no está afiliado a Marvel ni a Disney.
+  </div>
+</footer>
+
+<script>
+document.getElementById('year').textContent = new Date().getFullYear()
+const io = new IntersectionObserver(es => es.forEach(e => e.isIntersecting && e.target.classList.add('in')), { threshold: .15 })
+document.querySelectorAll('.fade').forEach(el => io.observe(el))
+// Enlace directo al .exe de la última release, si existe
+fetch('https://api.github.com/repos/GonzalitoDev/Gonza-jarvis-intranet/releases/latest')
+  .then(r => r.ok ? r.json() : null)
+  .then(rel => {
+    if (!rel) return
+    const exe = (rel.assets || []).find(a => a.name.endsWith('.exe'))
+    if (exe) document.getElementById('download').href = exe.browser_download_url
+    document.getElementById('version').textContent = `Última versión: ${rel.tag_name}`
+  })
+  .catch(() => {})
+</script>
+</body>
+</html>
