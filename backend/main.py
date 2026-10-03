@@ -130,7 +130,10 @@ def rate_limit(max_calls: int = 30, period: int = 60):
 app = FastAPI(title="JARVIS Intranet Assistant")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "file://"],
+    # La app empaquetada carga la UI desde file://; según la versión de Chromium el origen llega como
+    # "file://" o "null".
+    # Es seguro permitirlo: todos los endpoints salvo /health exigen la API key que genera Electron.
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173", "file://", "null"],
     allow_methods=["GET", "POST"],
     allow_headers=["Authorization", "Content-Type"],
 )
