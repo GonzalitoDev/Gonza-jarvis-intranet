@@ -31,7 +31,7 @@ function pickVoice(): SpeechSynthesisVoice | undefined {
 }
 
 // Codifica PCM mono de 16 bits como WAV, el formato que acepta el backend
-function encodeWav(samples: Float32Array, sampleRate: number): Blob {
+export function encodeWav(samples: Float32Array, sampleRate: number): Blob {
   const buffer = new ArrayBuffer(44 + samples.length * 2)
   const view = new DataView(buffer)
   const write = (o: number, s: string) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)) }
@@ -47,7 +47,7 @@ function encodeWav(samples: Float32Array, sampleRate: number): Blob {
   return new Blob([buffer], { type: 'audio/wav' })
 }
 
-function blobToBase64(blob: Blob): Promise<string> {
+export function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
     const r = new FileReader()
     r.onload = () => resolve(String(r.result).split(',')[1] || '')

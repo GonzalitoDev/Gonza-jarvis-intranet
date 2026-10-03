@@ -7,9 +7,11 @@ interface SearchBarProps {
   listening?: boolean
   voiceEnabled?: boolean
   onToggleVoice?: () => void
+  wakeState?: 'off' | 'idle' | 'awake' | 'error'
+  onToggleWake?: () => void
 }
 
-export default function SearchBar({ onSend, disabled, onMic, listening, voiceEnabled, onToggleVoice }: SearchBarProps) {
+export default function SearchBar({ onSend, disabled, onMic, listening, voiceEnabled, onToggleVoice, wakeState = 'off', onToggleWake }: SearchBarProps) {
   const [input, setInput] = useState('')
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -31,11 +33,25 @@ export default function SearchBar({ onSend, disabled, onMic, listening, voiceEna
           {voiceEnabled ? '🔊' : '🔇'}
         </button>
       )}
+      {onToggleWake && (
+        <button
+          type="button" className={`icon-btn wake-btn wake-${wakeState}`} onClick={onToggleWake}
+          title={{
+            off: 'Activar "Hey Jarvis": escucha siempre y responde al oír su nombre',
+            idle: 'Escuchando "Jarvis"… (tocá para desactivar)',
+            awake: 'Te escucho, decí la orden',
+            error: 'No pude usar el micrófono',
+          }[wakeState]}
+          aria-pressed={wakeState !== 'off'}
+        >
+          {wakeState === 'off' ? '💤' : wakeState === 'error' ? '⚠️' : '👂'}
+        </button>
+      )}
       <input
         type="text"
         value={input}
         onChange={e => setInput(e.target.value)}
-        placeholder={listening ? 'Escuchando… tocá el micrófono para terminar' : 'Preguntale algo a JARVIS o dale un comando...'}
+        placeholder={listening ? 'Escuchando… tocá el micrófono para terminar' : wakeState === 'awake' ? 'Te escucho…' : wakeState === 'idle' ? 'Decí "Jarvis" o escribí…' : 'Preguntale algo a JARVIS o dale un comando...'}
         disabled={disabled || listening}
       />
       {onMic && (

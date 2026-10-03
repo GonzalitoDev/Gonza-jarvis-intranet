@@ -5,6 +5,7 @@ import SearchBar from './components/SearchBar'
 import StatusBar from './components/StatusBar'
 import { useBackend } from './hooks/useBackend'
 import { useVoice } from './hooks/useVoice'
+import { useWakeWord } from './hooks/useWakeWord'
 import type { Message, UpdateStatus } from './types'
 import './App.css'
 
@@ -73,6 +74,8 @@ export default function App() {
 
     if (isCommand) {
       response = await executeCommand(text)
+      // Palabras como "lista" o "día" aparecen en preguntas normales: si no era un comando, preguntar
+      if (response.type === 'unknown') response = await query(text)
     } else {
       response = await query(text)
     }
@@ -86,6 +89,13 @@ export default function App() {
     setMessages(prev => [...prev, assistantMsg])
     voice.speak(response.message)
   }, [query, executeCommand, voice.speak])
+
+  const wake = useWakeWord({
+    transcribe,
+    paused: voice.speaking || voice.listening || loading,
+    onWake: () => voice.speak('¿Sí, señor?'),
+    onCommand: text => handleSend(text),
+  })
 
   const handleMic = useCallback(async () => {
     const { text, error } = await voice.listen()
@@ -130,6 +140,7 @@ export default function App() {
           onSend={handleSend} disabled={loading}
           onMic={handleMic} listening={voice.listening}
           voiceEnabled={voice.enabled} onToggleVoice={voice.toggleEnabled}
+          wakeState={wake.state} onToggleWake={wake.toggle}
         />
       </main>
       <StatusBar
