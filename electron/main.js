@@ -2,12 +2,17 @@ const { app, BrowserWindow, ipcMain } = require('electron')
 const path = require('path')
 const fs = require('fs')
 const { spawn } = require('child_process')
+const crypto = require('crypto')
 const { autoUpdater } = require('electron-updater')
 
 let mainWindow
 let backendProcess
 
 const isDev = !app.isPackaged
+
+// API key compartida entre backend y frontend. Si el usuario definió JARVIS_API_KEY se respeta;
+// si no, se genera una aleatoria en cada arranque y solo la conocen este proceso, el backend y la ventana.
+const apiKey = process.env.JARVIS_API_KEY || crypto.randomBytes(32).toString('base64url')
 
 autoUpdater.autoDownload = true
 autoUpdater.autoInstallOnAppQuit = true
@@ -31,9 +36,11 @@ function getBackendDataDir() {
 }
 
 function startBackend() {
+  const env = { ...process.env, JARVIS_API_KEY: apiKey }
   if (isDev) {
     backendProcess = spawn('python', ['-m', 'uvicorn', 'main:app', '--host', '127.0.0.1', '--port', '8765'], {
       cwd: path.join(__dirname, '..', 'backend'),
+      env,
       stdio: 'pipe',
     })
   } else {
@@ -41,6 +48,7 @@ function startBackend() {
     const dataDir = getBackendDataDir()
     backendProcess = spawn(backendPath, [], {
       cwd: dataDir,
+      env,
       stdio: 'pipe',
     })
   }
@@ -69,6 +77,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      additionalArguments: [`--jarvis-api-key=${apiKey}`],
     },
   })
 

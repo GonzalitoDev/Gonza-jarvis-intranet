@@ -34,6 +34,8 @@ async function safeJson(res: Response): Promise<any> {
 }
 
 function getApiKey(): string {
+  // En Electron la key la genera el proceso principal; fuera de Electron se puede guardar en localStorage
+  if (window.electronAPI?.apiKey) return window.electronAPI.apiKey
   try {
     return localStorage.getItem('jarvis_api_key') || ''
   } catch {
